@@ -1,0 +1,14 @@
+step_size = None
+keys = 'white'
+# keys = 'all'
+number_of_notes = None
+intervals = None
+# phase = 'exponential'
+step_trend = None
+phase = 'steady state'
+play_intro = True
+accept_with_spaces = True
+accept_without_spaces = True
+mistakes_counter = 0
+user = 'tomer'
+request_response=True
