@@ -673,7 +673,7 @@ class Iteration:
 
         if len(iteration_list) == 0:
             if config.play_intro:
-                self.intro(x=2)
+                self.intro(x=1)
             self.question = self.Question(mistakes_counter=self.mistakes_counter,
                                           phase=self.phase, iteration_list=iteration_list,
                                           previous_note_indices=initial.indices(keys=config.keys))
@@ -703,7 +703,7 @@ class Iteration:
                                                   previous_note_indices=previous_note_indices)
                 elif iteration_list[-2].response.type is False:
                     if config.play_intro:
-                        self.intro(x=2)
+                        self.intro(x=1)
                     self.question = self.Question(mistakes_counter=self.mistakes_counter,
                                                   phase=self.phase, iteration_list=iteration_list,
                                                   previous_note_indices=initial.indices(keys=config.keys))

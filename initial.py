@@ -20,9 +20,9 @@ class Level:
             self.step_size = None
             self.number_of_notes = None
             self.intervals = None
-            self.total = 61
-            with open('users levels\\' + user + '.pkl', 'rb') as inp:
-                self.total = pickle.load(inp)
+            self.total = 0
+            #with open('users levels\\' + user + '.pkl', 'rb') as inp:
+             #   self.total = pickle.load(inp)
         # self.total = self.number_of_notes * \
         #              constants.levels.intervals.shape[0] * \
         #              constants.levels.step_size.shape[0] + \
