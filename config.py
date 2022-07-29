@@ -17,7 +17,7 @@ accept_with_spaces = True
 accept_without_spaces = True
 mistakes_counter = 0
 user = 'tomer'
-request_response=True
+request_answer = True
 note_attributes = {'indices': note_indices,
                    'names': note_names,
                    'numbers': note_numbers}

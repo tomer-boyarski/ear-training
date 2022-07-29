@@ -206,9 +206,9 @@ def max_level_func(keys, step_size=None,
 max_chord_size = levels.number_of_notes.shape[1]
 
 reveal = False
-show_level = True
-show_phase = True
-
+show_total_level = True
+show_phase = False
+show_step_options = True
 
 def set_abcd(number_of_notes):
     if number_of_notes == 1:

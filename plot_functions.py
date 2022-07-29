@@ -9,19 +9,19 @@ import seaborn as sns
 def my_plot(iteration_list, keys):
     fig, ax = plt.subplots(nrows=3, ncols=2, figsize=(8, 4))
     # questions_indices = [question.question_index for question in question_list if question.True_or_False]
-    # response_time = [question.response_time for question in question_list if question.True_or_False]
-    response_time = [q.response.time.raw for q in iteration_list]
-    auto_regressive_response_time = [question.response.time.autoregressive for question in iteration_list]
+    # answer_time = [question.answer_time for question in question_list if question.True_or_False]
+    answer_time = [q.answer.time.raw for q in iteration_list]
+    auto_regressive_answer_time = [question.answer.time.autoregressive for question in iteration_list]
 
-    # ax[0, 0].plot(questions_indices, response_time, label='response time')
-    # ax[0, 0].plot(questions_indices, constants.minimal_response_time * np.ones(len(response_time)),
-    #            '--k', label='minimal response time')
-    ax[0, 0].plot(response_time, '-', label='response time')
-    # ax[0, 0].plot(auto_regressive_response_time, label='autoregressive response time')
+    # ax[0, 0].plot(questions_indices, answer_time, label='answer time')
+    # ax[0, 0].plot(questions_indices, constants.minimal_answer_time * np.ones(len(answer_time)),
+    #            '--k', label='minimal answer time')
+    ax[0, 0].plot(answer_time, '-', label='answer time')
+    # ax[0, 0].plot(auto_regressive_answer_time, label='autoregressive answer time')
     question_indices = np.arange(len(iteration_list))
-    response_types = [q.response.type for q in iteration_list]
+    answer_types = [q.answer.type for q in iteration_list]
 
-    error_indices = [i for i, q in enumerate(iteration_list) if q.response.type == False]
+    error_indices = [i for i, q in enumerate(iteration_list) if q.answer.type == False]
     number_of_notes_per_question = [q.question.number_of_notes for q in iteration_list]
     number_of_notes_per_question = np.array(number_of_notes_per_question)
     # number_of_notes = np.array([q.number_of_notes for q in question_list])
@@ -33,18 +33,18 @@ def my_plot(iteration_list, keys):
     line_types = [':', '--', '-.']
     for i, number_of_notes in enumerate(np.unique(number_of_notes_per_question)):
         try:
-            very_short_response_time, very_long_response_time, _, _, = \
+            very_short_answer_time, very_long_answer_time, _, _, = \
                 constants.set_abcd(number_of_notes=number_of_notes)
             question_indices_with_specific_number_of_notes = \
                 question_indices.astype(float)
             question_indices_with_specific_number_of_notes[
                 number_of_notes_per_question != number_of_notes] = None
             ax[0, 0].plot(question_indices_with_specific_number_of_notes,
-                           very_short_response_time * np.ones(len(question_indices_with_specific_number_of_notes)),
-                           line_types[i]+'g', label='very short response time for ' + str(number_of_notes) + ' notes')
+                           very_short_answer_time * np.ones(len(question_indices_with_specific_number_of_notes)),
+                           line_types[i]+'g', label='very short answer time for ' + str(number_of_notes) + ' notes')
             ax[0, 0].plot(question_indices_with_specific_number_of_notes,
-                           very_long_response_time * np.ones(len(question_indices_with_specific_number_of_notes)),
-                           line_types[i]+'r', label='very long response time for ' + str(number_of_notes) + ' notes')
+                           very_long_answer_time * np.ones(len(question_indices_with_specific_number_of_notes)),
+                           line_types[i]+'r', label='very long answer time for ' + str(number_of_notes) + ' notes')
         except:
             pass
     box = ax[0, 0].get_position()
@@ -86,6 +86,7 @@ def plot_step_size(r_ind, c_ind, question_list, ax):
     ax[r_ind, c_ind].legend(loc='center left', bbox_to_anchor=(1, 0.5))
     ax[r_ind, c_ind].set(yticks=range(0, 9))
 
+
 def plot_levels(ax, iteration_list, y_limit, level_type, r_ind, c_ind):
     level_to_plot = [getattr(iteration.question.level, level_type) for iteration in iteration_list]
     ax[r_ind, c_ind].plot(level_to_plot, label=level_type+' level')
@@ -102,7 +103,7 @@ def plot_jump_success_rate(question_list):
     for i, q in enumerate(question_list):
         if i > 0:
             num_jump[question_list[i-1].question.index, question_list[i].question.index] += 1
-            if q.response.flag.correct:
+            if q.answer.flag.correct:
                 num_jump_succ[question_list[i - 1].question.index, question_list[i].question.index] += 1
     jum_succ_rate = np.full(num_jump.shape, np.nan)
     jum_succ_rate[num_jump != 0] = num_jump_succ[num_jump != 0] / num_jump[num_jump != 0]

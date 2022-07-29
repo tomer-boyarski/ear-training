@@ -1,5 +1,6 @@
 import numpy as np
 import constants
+import os.path
 # from low_level_classes_02 import *
 # index = -1
 import pickle
@@ -20,9 +21,11 @@ class Level:
             self.step_size = None
             self.number_of_notes = None
             self.intervals = None
-            self.total = 0
-            #with open('users levels\\' + user + '.pkl', 'rb') as inp:
-             #   self.total = pickle.load(inp)
+            self.total = 97
+            file_name = 'users\\' + user + '\\level.pkl'
+            if os.path.isfile(file_name):
+                with open(file_name, 'rb') as inp:
+                    self.total = pickle.load(inp)
         # self.total = self.number_of_notes * \
         #              constants.levels.intervals.shape[0] * \
         #              constants.levels.step_size.shape[0] + \

@@ -41,7 +41,7 @@ class Iteration:
                 if len(self.dynamic_attributes) == 0:
                     self.total = None
                 else:
-                    self.calculate_total_level_according_to_raw_response_time(
+                    self.calculate_total_level_according_to_raw_answer_time(
                         iteration_list, phase, max_level=max_level, mistakes_counter=mistakes_counter,
                         user=config.user)
                     self.number_of_notes = None
@@ -51,11 +51,11 @@ class Iteration:
                         is_attribute_dynamic=is_attribute_dynamic,
                         attribute_names=attribute_names, keys=config.keys)
 
-                    if constants.show_level:
+                    if constants.show_total_level:
                         print('level.total = ' + str(self.total))
-                        print('number_of_notes level= ' + str(self.number_of_notes))
-                        print('intervals level = ' + str(self.intervals))
-                        print('step_size level = ' + str(self.step_size))
+                        # print('number_of_notes level= ' + str(self.number_of_notes))
+                        # print('intervals level = ' + str(self.intervals))
+                        # print('step_size level = ' + str(self.step_size))
 
             def raise_exception(self):
                 my_str = 'To manually set the difficulty level, ' + \
@@ -80,10 +80,10 @@ class Iteration:
             def set_level_attributes_if_literal_otherwise_something_else(
                     self, iteration_list, attribute_names,
                     attributes, attribute_levels, user):
-                update_level_according_to_user_response = {}
+                update_level_according_to_user_answer = {}
                 for attribute, attribute_level, attribute_name in \
                         zip(attributes, attribute_levels, attribute_names):
-                    update_level_according_to_user_response[attribute_name] = False
+                    update_level_according_to_user_answer[attribute_name] = False
                     if attribute is not None:
                         if attribute_level is not None:
                             raise Exception('step size is not None and step size level is also not None')
@@ -93,27 +93,27 @@ class Iteration:
                         if attribute_level is not None:
                             setattr(self, attribute_name, attribute_level)
                         else:  # attribute_level is None
-                            update_level_according_to_user_response[attribute_name] = True
+                            update_level_according_to_user_answer[attribute_name] = True
                             if len(iteration_list) == 0:
                                 initial_attribute_level = getattr(initial.get_level(user=user), attribute_name)
                                 setattr(self, attribute_name, initial_attribute_level)
-                return update_level_according_to_user_response
+                return update_level_according_to_user_answer
 
-            def calculate_total_level_according_to_raw_response_time(
+            def calculate_total_level_according_to_raw_answer_time(
                     self, iteration_list, phase, max_level, mistakes_counter, user):
                 if len(iteration_list) == 0:
                     self.total = initial.get_level(user).total
                 elif len(iteration_list) >= 1:
-                    if iteration_list[-1].response.type is True:
+                    if iteration_list[-1].answer.type is True:
                         self.set_level_after_correct_answer(
                             phase=phase, mistakes_counter=mistakes_counter,
                             iteration_list=iteration_list,
                             max_level=max_level)
-                    elif iteration_list[-1].response.type is False:
+                    elif iteration_list[-1].answer.type is False:
                         if iteration_list[-1].phase == 'exponential':
                             if len(iteration_list) >= 2:
-                                responses = [q.response.type for q in iteration_list]
-                                error_indices = [i for i, r in enumerate(responses) if r is False]
+                                answers = [q.answer.type for q in iteration_list]
+                                error_indices = [i for i, r in enumerate(answers) if r is False]
                                 y = len(iteration_list) - 1
                                 if len(error_indices) >= 2:
                                     x = error_indices[-2]
@@ -176,11 +176,11 @@ class Iteration:
 
             def set_level_after_correct_answer(
                     self, phase, mistakes_counter, iteration_list, max_level):
-                previous_raw_response_time = iteration_list[-1].response.time.raw
+                previous_raw_answer_time = iteration_list[-1].answer.time.raw
                 previous_level = iteration_list[-1].question.level.total
                 previous_number_of_notes = iteration_list[-1].question.number_of_notes
                 a, b, c, d = constants.set_abcd(number_of_notes=previous_number_of_notes)
-                x = previous_raw_response_time
+                x = previous_raw_answer_time
                 if type(x) is tuple:  # (which is shouldn't be)
                     x = x[0]
                 if phase == 'exponential':
@@ -216,6 +216,9 @@ class Iteration:
                 elif difficulty_level is not None:
                     p = getattr(constants.levels.step_size, keys)
                     p = p[difficulty_level, :]
+                    if constants.show_step_options:
+                        x = np.arange(len(p))
+                        print('step option: ' + str(x[p>0]+1))
                     self.size = np.random.choice(
                         np.arange(1, constants.max_step_size(keys=keys) + 1), 1, p=p)
                     self.size = self.size[0]
@@ -521,7 +524,7 @@ class Iteration:
                 note_index = note_index[0]
                 self.notes.append(self.Note(keys=keys, index=note_index))
 
-    class Response:
+    class Answer:
         # class Flag:
         #     def __init__(self):
         #         self.repeat = True
@@ -534,7 +537,7 @@ class Iteration:
                 # a, b, c, d = constants.set_abcd(number_of_notes=number_of_notes)
                 # x = a - c * (b-a) / (d-c)
                 self.raw = None
-                self.autoregressive = None  # constants.optimal_response_time
+                self.autoregressive = None  # constants.optimal_answer_time
 
         def __init__(self, number_of_notes):
             self.text = 'C'
@@ -543,11 +546,11 @@ class Iteration:
             self.time = self.Time(number_of_notes=number_of_notes)
 
     class Attributes:
-        def __init__(self, request_response,
+        def __init__(self, request_answer,
                      error_state=initial.error_state
                      ):
             # self.error_state = error_state
-            self.request_response = request_response
+            self.request_answer = request_answer
 
     class Volume:
         def __init__(self):
@@ -555,67 +558,67 @@ class Iteration:
             self.trend = (-1) ** np.random.binomial(1, 0.5)
 
 
-    def request_response(self):
+    def request_answer(self):
         note_numbers = [note.number for note in self.question.notes]
         volume = self.volume.value
         question_start_time = time.time()
-        self.response.text = input("Identify Note:")
-        self.response.text = self.response.text.strip()
-        self.response.time.raw = time.time() - question_start_time
-        response_time_now_fraction = self.response.time.raw - np.round(self.response.time.raw)
-        time.sleep(constants.quarter_note_time - response_time_now_fraction)
+        self.answer.text = input("Identify Note:")
+        self.answer.text = self.answer.text.strip()
+        self.answer.time.raw = time.time() - question_start_time
+        answer_time_now_fraction = self.answer.time.raw - np.round(self.answer.time.raw)
+        time.sleep(constants.quarter_note_time - answer_time_now_fraction)
         # note_numbers = [note.number for note in iteration.chord.notes]
         for number in note_numbers:
             constants.mo.send_message([constants.note_off,
                                        number, volume])
-        self.response.text = self.response.text.upper()
-        self.set_response_time_to_nan_if_incorrect()
-        termination_flag = self.check_user_response_at_question_end()
+        self.answer.text = self.answer.text.upper()
+        self.set_answer_time_to_nan_if_incorrect()
+        termination_flag = self.check_user_answer_at_question_end()
         return termination_flag
 
-    def set_response_time_to_nan_if_incorrect(self):
+    def set_answer_time_to_nan_if_incorrect(self):
         is_incorrect = True
         note_names = [note.name for note in self.question.notes]
         if config.accept_without_spaces:
-            if self.response.text == ''.join(note_names):
+            if self.answer.text == ''.join(note_names):
                 is_incorrect = False
         if config.accept_with_spaces:
-            if self.response.text == ' '.join(note_names):
+            if self.answer.text == ' '.join(note_names):
                 is_incorrect = False
         if is_incorrect:
-            self.response.time.raw = np.nan
+            self.answer.time.raw = np.nan
 
-    def check_user_response_at_question_end(self):
+    def check_user_answer_at_question_end(self):
         termination_flag = False
         note_names = [note.name for note in self.question.notes]
         is_correct = False
         if config.accept_without_spaces:
-            if self.response.text == ''.join(note_names):
+            if self.answer.text == ''.join(note_names):
                 is_correct = True
         if config.accept_with_spaces:
-            if self.response.text == ' '.join(note_names):
+            if self.answer.text == ' '.join(note_names):
                 is_correct = True
         if is_correct:
-            self.response.type = True
+            self.answer.type = True
             print(colored("Good :-)", 'blue'))
-        elif self.response.text == 'END':
-            self.response.type = 'end'
+        elif self.answer.text == 'END':
+            self.answer.type = 'end'
             termination_flag = True
-        elif self.response.text == 'RESTART':
-            self.response.type = 'restart'
+        elif self.answer.text == 'RESTART':
+            self.answer.type = 'restart'
             print(colored("OK, RESTART: :-)", 'green'))
             raise Exception('need to implement RESTART with "intro"')
             # intro()
-        elif self.response.text == 'REPEAT':
-            self.response.type = 'repeat'
+        elif self.answer.text == 'REPEAT':
+            self.answer.type = 'repeat'
         else:  # user error
-            self.response.type = False
+            self.answer.type = False
             self.mistakes_counter = self.mistakes_counter + 1
             print(colored("Bad :-)", 'red'))
         return termination_flag
 
     @staticmethod
-    def intro(x=1):
+    def intro(x=2):
         note_on = 144
         note_off = 128
         my_volume = 64
@@ -641,7 +644,7 @@ class Iteration:
             if iteration_list[-1].phase == 'steady state':
                 self.phase = 'steady state'
             else:
-                if iteration_list[-1].response.type is False:
+                if iteration_list[-1].answer.type is False:
                     self.phase = 'steady state'
                 else:
                     self.phase = 'exponential'
@@ -673,44 +676,44 @@ class Iteration:
 
         if len(iteration_list) == 0:
             if config.play_intro:
-                self.intro(x=1)
+                self.intro(x=2)
             self.question = self.Question(mistakes_counter=self.mistakes_counter,
                                           phase=self.phase, iteration_list=iteration_list,
                                           previous_note_indices=initial.indices(keys=config.keys))
         elif len(iteration_list) == 1:
             previous_note_indices = [note.index for note in iteration_list[-1].question.notes]
-            if iteration_list[-1].response.type is True:
+            if iteration_list[-1].answer.type is True:
                 self.question = self.Question(mistakes_counter=self.mistakes_counter,
                                               phase=self.phase, iteration_list=iteration_list,
                                               previous_note_indices=previous_note_indices)
-            elif iteration_list[-1].response.type is False:
+            elif iteration_list[-1].answer.type is False:
                 self.question = self.Question(mistakes_counter=self.mistakes_counter,
                                               phase=self.phase, iteration_list=iteration_list,
                                               previous_note_indices=previous_note_indices,
                                               note_indices=initial.indices(keys=config.keys))
         elif len(iteration_list) >= 2:
             previous_note_indices = [note.index for note in iteration_list[-1].question.notes]
-            if iteration_list[-1].response.type is True:
+            if iteration_list[-1].answer.type is True:
                 self.question = self.Question(mistakes_counter=self.mistakes_counter,
                                               phase=self.phase, iteration_list=iteration_list,
                                               previous_note_indices=previous_note_indices)
-            elif iteration_list[-1].response.type is False:
-                if iteration_list[-2].response.type is True:
+            elif iteration_list[-1].answer.type is False:
+                if iteration_list[-2].answer.type is True:
                     note_indices = [note.index for note in iteration_list[-2].question.notes]
                     self.question = self.Question(mistakes_counter=self.mistakes_counter,
                                                   phase=self.phase, iteration_list=iteration_list,
                                                   note_indices=note_indices,
                                                   previous_note_indices=previous_note_indices)
-                elif iteration_list[-2].response.type is False:
+                elif iteration_list[-2].answer.type is False:
                     if config.play_intro:
-                        self.intro(x=1)
+                        self.intro(x=2)
                     self.question = self.Question(mistakes_counter=self.mistakes_counter,
                                                   phase=self.phase, iteration_list=iteration_list,
                                                   previous_note_indices=initial.indices(keys=config.keys))
 
-        self.response = self.Response(number_of_notes=self.question.number_of_notes)
+        self.answer = self.Answer(number_of_notes=self.question.number_of_notes)
         self.volume = self.Volume()
-        self.attributes = self.Attributes(config.request_response)
+        self.attributes = self.Attributes(config.request_answer)
 
     def play_chord(self, iteration_list):
         # if self.chord is None:
@@ -730,7 +733,7 @@ class Iteration:
         except:
             raise Exception('"high_level_classes" says: '
                             'I can not play these notes.')
-        if not self.attributes.request_response:
+        if not self.attributes.request_answer:
             time.sleep(constants.quarter_note_time)
             for number in self.question.numbers:
                 constants.mo.send_message([rtmidi.midiconstants.NOTE_OFF,
@@ -742,30 +745,37 @@ def main():
     termination_flag = False
     while not termination_flag:
         iteration = Iteration(iteration_list=iteration_list)
-        while iteration.response.type == 'repeat':
+        while iteration.answer.type == 'repeat':
             iteration.play_chord(iteration_list)
-            termination_flag = iteration.request_response()
+            termination_flag = iteration.request_answer()
         iteration_list.append(iteration)
 
     constants.mo.close_port()
 
 
     if None not in [config.number_of_notes, config.step_size, config.intervals]:
-        file_name = 'response_times//response_times_number_of_notes_' + str(config.number_of_notes) + '.p'
+        file_name = 'answer_times//answer_times_number_of_notes_' + str(config.number_of_notes) + '.p'
         if os.path.exists(file_name):
-            response_times_old = pickle.load(open(file_name, "rb"))
+            answer_times_old = pickle.load(open(file_name, "rb"))
         else:
-            response_times_old = []
-        response_times = [iteration.response.time.raw for iteration in iteration_list]
-        response_times = response_times_old + response_times
-        pickle.dump(response_times, open(file_name, "wb"))
+            answer_times_old = []
+        answer_times = [iteration.answer.time.raw for iteration in iteration_list]
+        answer_times = answer_times_old + answer_times
+        pickle.dump(answer_times, open(file_name, "wb"))
     else:
         iteration_list = iteration_list[:-1]
-        with open('question lists\\iteration_list.pkl', 'wb') as output:
+        file_name = 'users\\' + config.user + '\\iteration_list.pkl'
+        if os.path.isfile(file_name): 
+            with open(file_name, 'rb') as input:
+                previous_iteration_list = pickle.load(input)
+        else:
+            previous_iteration_list = []
+        iteration_list = previous_iteration_list + iteration_list
+        with open(file_name, 'wb') as output:
             pickle.dump(iteration_list, output, pickle.HIGHEST_PROTOCOL)
-        with open('users levels\\' + config.user + '.pkl', 'wb') as output:
+        with open('users\\' + config.user + '\\level.pkl', 'wb') as output:
             pickle.dump(iteration_list[-1].question.level.total, output, pickle.HIGHEST_PROTOCOL)
-        plot_functions.my_plot(iteration_list=iteration_list, keys=config.keys)
+        # plot_functions.my_plot(iteration_list=iteration_list, keys=config.keys)
 
     print('this is the end of MAIN')
 

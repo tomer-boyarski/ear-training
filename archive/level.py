@@ -33,7 +33,7 @@ class Level:
                 is_attribute_dynamic=is_attribute_dynamic,
                 attribute_names=attribute_names, keys=keys)
 
-            if constants.show_level:
+            if constants.show_total_level:
                 print('level.total = ' + str(self.total))
                 print('number_of_notes level= ' + str(self.number_of_notes))
                 print('intervals level = ' + str(self.intervals))
