@@ -598,23 +598,23 @@ class Iteration:
                     self.trend = (-1) ** np.random.binomial(1, 0.5)
 
         class Note:
-            def __init__(self, keys, index=None, name=None, number=None,
-                         interval=None, lower_note=None,
-                         level=None):
+            def __init__(self, keys=None, index=None, names=None, numbers=None,
+                         interval=None, lower_note=None, indices=None, 
+                         level=None, number_of_notes=None):
 
-                self.index = index
-                self.name = name
-                self.number = number
+                self.indices = indices 
+                self.names = names
+                self.numbers = numbers
 
-                self.raise_exceptions(index, name, number, interval, lower_note)
+                # self.raise_exceptions(index, name, number, interval, lower_note)
 
             # def new_note_method(self):
-                if self.index is not None:
-                    self.initialize_with_index(index=self.index, keys=keys)
-                elif self.name is not None:
-                    self.initialize_with_name(name=self.name, keys=keys)
-                elif self.number is not None:
-                    self.initialize_with_number(number=self.number, keys=keys)
+                # if self.indices is not None:
+                #     self.initialize_with_index(index=self.indices, keys=keys)
+                # elif self.name is not None:
+                #     self.initialize_with_name(name=self.name, keys=keys)
+                # elif self.number is not None:
+                #     self.initialize_with_number(number=self.number, keys=keys)
 
             @staticmethod
             def raise_exceptions(index, name, number, interval, lower_note):
@@ -637,20 +637,22 @@ class Iteration:
                     raise Exception('Can not define note with the following attribute: ' +
                                     my_str)
 
-            def initialize_with_index(self, index, keys):
-                self.index = index
-                if keys == 'white':
-                    self.number = constants.keys.white.numbers[index]
-                    same_note_bottom_octave = constants.keys.white.numbers[0] + self.number % 12
-                    name_index = np.where(constants.keys.white.numbers == same_note_bottom_octave)
-                    name_index = name_index[0][0]
-                    self.name = constants.keys.white.names[name_index]
-                elif keys == 'all':
-                    self.number = constants.keys.all.number[index]
-                    same_note_bottom_octave = constants.keys.all.number[0] + self.number % 12
-                    name_index = np.where(constants.keys.all.number == same_note_bottom_octave)
-                    name_index = name_index[0][0]
-                    self.name = constants.keys.all.name[name_index]
+            def initialize_with_index(self, keys):
+                for note_index_in_chord, note_index_in_scale in enumerate(self.indices):
+                    if keys == 'white':
+                        self.numbers[note_index_in_chord] = constants.keys.white.numbers[note_index_in_scale]
+                        same_note_bottom_octave = constants.keys.white.numbers[0] +\
+                            self.numbers[note_index_in_chord] % 12
+                        name_index = np.where(constants.keys.white.numbers == same_note_bottom_octave)
+                        name_index = name_index[0][0]
+                        self.names[note_index_in_chord] = constants.keys.white.names[name_index]
+                    elif keys == 'all':
+                        self.numbers[note_index_in_chord] = constants.keys.all.number[note_index_in_scale]
+                        same_note_bottom_octave = constants.keys.all.number[0] + \
+                            self.numbers[note_index_in_chord] % 12
+                        name_index = np.where(constants.keys.all.number == same_note_bottom_octave)
+                        name_index = name_index[0][0]
+                        self.names[note_index_in_chord] = constants.keys.all.name[name_index]
 
             def initialize_with_number(self, number, keys):
                 raise Exception('this need work: initialize_with_number in "note"')
@@ -791,8 +793,8 @@ class Iteration:
                 print('phase = ' + phase)
             # self.size = None
             self.step = None
-            # self.notes = self.Note(names=note_names, numbers=note_numbers, indices=note_indices)
-            self.notes = []
+            
+            # self.notes = []
             self.number_of_notes = number_of_notes
 
             if number_of_notes is None:
@@ -807,7 +809,7 @@ class Iteration:
             if note_indices is None:
                 note_indices = config.note_indices
             note_indices = self.create_none_list_if_necessary(list_or_none=note_indices, size=self.number_of_notes)
-
+            self.note = self.Note(names=note_names, numbers=note_numbers, indices=note_indices)
             while True:
                 for i in range(self.number_of_notes):
                     if i == 0:
@@ -821,11 +823,12 @@ class Iteration:
                             note_names=note_names, note_numbers=note_numbers, note_indices=note_indices,
                             intervals=intervals,
                             level=self.level)
-                indices = [note.index for note in self.notes]
-                if all(index in constants.keys.white.indices for index in indices):
+                # indices = [note.index for note in self.note]
+                if all(index in constants.keys.white.indices for index in self.note.indices):
+                    self.note.initialize_with_index(keys=config.keys)
                     break
                 else:
-                    self.notes = []
+                    self.note = []
                     pass
 
         def set_chord_step_and_bottom_note(
@@ -841,9 +844,9 @@ class Iteration:
             step_is_literally_defined = step_size is not None or step_trend is not None
             if note_is_literally_defined:
                 # if not step_is_literally_defined:
-                self.notes.append(self.Note(keys=keys, index=note_indices[i],
-                                            number=note_numbers[i],
-                                            name=note_names[i]))
+                # self.note.append(self.Note(keys=keys, index=note_indices[i],
+                #                             number=note_numbers[i],
+                #                             name=note_names[i]))
                 self.step = self.Step(keys=keys,
                                  current_index=note_indices[i],
                                  previous_index=previous_note_indices[i])
@@ -857,7 +860,8 @@ class Iteration:
                     new_bottom_index = previous_note_indices[0] + \
                                        (self.step.size - 1) * self.step.trend
                     if 0 <= new_bottom_index < len(constants.keys.white.numbers) / 2:
-                        self.notes.append(self.Note(keys=keys, index=new_bottom_index))
+                        self.note.indices[i] = new_bottom_index
+                        # self.note.append(self.Note(keys=keys, index=new_bottom_index))
                         break
 
         def set_interval_and_non_bottom_note(
@@ -872,10 +876,10 @@ class Iteration:
                 note_numbers[index_in_chord] is not None
             if note_is_literally_defined:
                 # if intervals[index_in_chord - 1] is None:
-                self.notes.append(self.Note(keys=keys, index=note_indices[index_in_chord],
-                                            number=note_numbers[index_in_chord],
-                                            name=note_names[index_in_chord]))
-                intervals[index_in_chord - 1] = self.notes[-1].index - self.notes[-2].index + 1
+                # self.note.append(self.Note(keys=keys, index=note_indices[index_in_chord],
+                #                             number=note_numbers[index_in_chord],
+                #                             name=note_names[index_in_chord]))
+                intervals[index_in_chord - 1] = self.note[-1].index - self.note[-2].index + 1
             else:
                 if intervals[index_in_chord - 1] is None:
                     p = getattr(constants.levels.intervals, keys)
@@ -884,10 +888,11 @@ class Iteration:
                     x = len(x.names) + 2
                     intervals[index_in_chord - 1] = np.random.choice(
                         np.arange(2, x), 1, p=p)
-                lower_note = self.notes[index_in_chord - 1].index
+                lower_note = self.note.indices[index_in_chord - 1]
                 note_index = lower_note + intervals[index_in_chord - 1] - 1
                 note_index = note_index[0]
-                self.notes.append(self.Note(keys=keys, index=note_index))
+                self.note.indices[index_in_chord] = note_index
+                # self.note.append(self.Note(keys=keys, index=note_index))
 
 
     class Answer:
@@ -925,7 +930,7 @@ class Iteration:
 
 
     def request_answer(self):
-        note_numbers = [note.number for note in self.question.notes]
+        note_numbers = self.question.note.numbers
         volume = self.volume.value
         question_start_time = time.time()
         self.answer.text = input("Identify Note:")
@@ -944,7 +949,7 @@ class Iteration:
 
     def set_answer_time_to_nan_if_incorrect(self):
         is_incorrect = True
-        note_names = [note.name for note in self.question.notes]
+        note_names = self.question.note.names
         if config.accept_without_spaces:
             if self.answer.text == ''.join(note_names):
                 is_incorrect = False
@@ -956,7 +961,7 @@ class Iteration:
 
     def check_user_answer_at_question_end(self):
         termination_flag = False
-        note_names = [note.name for note in self.question.notes]
+        note_names = self.question.note.names
         is_correct = False
         if config.accept_without_spaces:
             if self.answer.text == ''.join(note_names):
@@ -1047,7 +1052,7 @@ class Iteration:
                                           phase=self.phase, iteration_list=iteration_list,
                                           previous_note_indices=initial.indices(keys=config.keys))
         elif len(iteration_list) == 1:
-            previous_note_indices = [note.index for note in iteration_list[-1].question.notes]
+            previous_note_indices = iteration_list[-1].question.note.indices
             if iteration_list[-1].answer.type is True:
                 self.question = self.Question_Steps_and_Intervals(mistakes_counter=self.mistakes_counter,
                                               phase=self.phase, iteration_list=iteration_list,
@@ -1058,7 +1063,7 @@ class Iteration:
                                               previous_note_indices=previous_note_indices,
                                               note_indices=initial.indices(keys=config.keys))
         elif len(iteration_list) >= 2:
-            previous_note_indices = [note.index for note in iteration_list[-1].question.notes]
+            previous_note_indices = iteration_list[-1].question.note.indices
             if iteration_list[-1].answer.type is True:
                 self.question = self.Question_Steps_and_Intervals(mistakes_counter=self.mistakes_counter,
                                               phase=self.phase, iteration_list=iteration_list,
@@ -1086,13 +1091,10 @@ class Iteration:
         #     self = set_chord(self, iteration_list)
         #     self = set_volume(self, iteration_list)
         if constants.reveal:
-            note_numbers = [note.number for note in self.question.notes]
-            print(note_numbers)
-            note_names = [note.name for note in self.question.notes]
-            print(note_names)
+            print(self.question.note.numbers)
+            print(self.question.note.names)
         try:
-            numbers = [note.number for note in self.question.notes]
-            for number in numbers:
+            for number in self.question.note.numbers:
                 constants.mo.send_message([constants.note_on,
                                            number, self.volume.value])
 
@@ -1101,7 +1103,7 @@ class Iteration:
                             'I can not play these notes.')
         if not self.attributes.request_answer:
             time.sleep(constants.quarter_note_time)
-            for number in self.question.numbers:
+            for number in self.question.note.numbers:
                 constants.mo.send_message([rtmidi.midiconstants.NOTE_OFF,
                                            number, self.volume.value])
 
