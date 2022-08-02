@@ -41,7 +41,7 @@ def my_plot(list_of_iteration_lists, keys):
         error_times = np.take(datetime_list, error_indices)
         ax[0, 0].plot(error_times,
                     np.zeros(len(error_indices)),
-                    'd', label='Errors', color='m')
+                    'd', label=label, color='m')
         line_types = [':', '--', '-.']
         for index_of_number_of_notes, number_of_notes in enumerate(np.unique(number_of_notes_per_question)):
             very_short_answer_time, very_long_answer_time, _, _, = \
@@ -70,7 +70,7 @@ def my_plot(list_of_iteration_lists, keys):
             ax[0, 0].plot(datetime_list_with_specific_number_of_notes,
                             very_long_answer_time * np.ones(len(datetime_list_with_specific_number_of_notes)),
                             line_types[index_of_number_of_notes]+'r', 
-                            label='very long answer time for ' + str(number_of_notes) + ' notes')
+                            label=label)
         box = ax[0, 0].get_position()
         ax[0, 0].set(ylabel='seconds')
         ax[0, 0].set_position([box.x0, box.y0, box.width * 0.5, box.height])
