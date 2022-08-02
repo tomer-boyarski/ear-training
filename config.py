@@ -10,6 +10,7 @@ intervals_level = None
 step_size = None
 step_trend = None
 step_size_level = None
+chord_creation_method = 'notes from a box'
 # phase = 'exponential'
 phase = 'steady state'
 play_intro = True

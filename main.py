@@ -8,96 +8,39 @@ import constants
 import time
 import numpy as np
 from termcolor import colored
-
+from datetime import datetime
 
 class Iteration:
     class Question:
         class Level:
             @staticmethod
-            def raise_exceptions_level_literals():
-                level_att = {'number_of_notes': config.number_of_notes_level,
-                             'intervals': config.intervals_level,
-                             'step_size': config.step_size_level}
-                for key, val in level_att.items():
-                    if val is not None:
-                        if val not in range(1 + getattr(constants.levels.max, key)):
-                            raise Exception('invalid ' + key + ' level')
-
-            def __init__(self, iteration_list, phase, mistakes_counter,
-                         max_level):
-                self.raise_exceptions_level_literals()
-                attributes = [config.number_of_notes, config.intervals, config.step_size]
-                attribute_names = ['number_of_notes', 'intervals', 'step_size']
-                attribute_levels = [config.number_of_notes_level, config.intervals_level, config.step_size_level]
-
-                is_attribute_dynamic = \
-                    self.set_level_attributes_if_literal_otherwise_something_else(
-                        iteration_list=iteration_list,
-                        attributes=attributes,
-                        attribute_levels=attribute_levels,
-                        attribute_names=attribute_names,
-                        user=config.user)
-                self.dynamic_attributes = {k: v for k, v in is_attribute_dynamic.items() if v is True}
-                if len(self.dynamic_attributes) == 0:
-                    self.total = None
-                else:
-                    self.calculate_total_level_according_to_raw_answer_time(
-                        iteration_list, phase, max_level=max_level, mistakes_counter=mistakes_counter,
-                        user=config.user)
-                    self.number_of_notes = None
-                    self.intervals = None
-                    self.step_size = None
-                    self.calculate_dynamic_attributes_from_total_level(
-                        is_attribute_dynamic=is_attribute_dynamic,
-                        attribute_names=attribute_names, keys=config.keys)
-
-                    if constants.show_total_level:
-                        print('level.total = ' + str(self.total))
-                        # print('number_of_notes level= ' + str(self.number_of_notes))
-                        # print('intervals level = ' + str(self.intervals))
-                        # print('step_size level = ' + str(self.step_size))
-
-            def raise_exception(self):
-                my_str = 'To manually set the difficulty level, ' + \
-                         'either input the "total" level or ' + \
-                         'both the "step_size" and "chord_size" levels. '
-                if self.step_size is not None and self.number_of_notes is None and self.total is None:
-                    raise Exception(my_str +
-                                    'You only put the "step_size" level.')
-                if self.step_size is None and self.number_of_notes is not None and self.total is None:
-                    raise Exception(my_str +
-                                    'You only put the "chord_size" level.')
-                if self.step_size is None and self.number_of_notes is not None and self.total is not None:
-                    raise Exception(my_str +
-                                    'You put both the "total" level and the "chord_size" level.')
-                if self.step_size is not None and self.number_of_notes is None and self.total is not None:
-                    raise Exception(my_str +
-                                    'You put both the "total" level and the "step_size" level.')
-                if self.step_size is not None and self.number_of_notes is not None and self.total is not None:
-                    raise Exception(my_str +
-                                    'You put all three levels together.')
+            def raise_exceptions_level_literals(level_att):
+                for att_name, att_val in level_att.items():
+                    if att_val is not None:
+                        if att_val not in range(1 + getattr(constants.levels.max, att_name)):
+                            raise Exception('invalid ' + att_name + ' level')
 
             def set_level_attributes_if_literal_otherwise_something_else(
                     self, iteration_list, attribute_names,
                     attributes, attribute_levels, user):
-                update_level_according_to_user_answer = {}
+                attribute_level_is_dynamic = {}
                 for attribute, attribute_level, attribute_name in \
                         zip(attributes, attribute_levels, attribute_names):
-                    update_level_according_to_user_answer[attribute_name] = False
+                    attribute_level_is_dynamic[attribute_name] = False
                     if attribute is not None:
                         if attribute_level is not None:
-                            raise Exception('step size is not None and step size level is also not None')
+                            raise Exception(attribute_name + ' is not None and ' + attribute_name + ' level is also not None')
                         else:
                             setattr(self, attribute_name, None)
                     else:  # attribute is None
                         if attribute_level is not None:
                             setattr(self, attribute_name, attribute_level)
                         else:  # attribute_level is None
-                            update_level_according_to_user_answer[attribute_name] = True
+                            attribute_level_is_dynamic[attribute_name] = True
                             if len(iteration_list) == 0:
                                 initial_attribute_level = getattr(initial.get_level(user=user), attribute_name)
                                 setattr(self, attribute_name, initial_attribute_level)
-                return update_level_according_to_user_answer
+                return attribute_level_is_dynamic
 
             def calculate_total_level_according_to_raw_answer_time(
                     self, iteration_list, phase, max_level, mistakes_counter, user):
@@ -131,49 +74,6 @@ class Iteration:
                         if self.total < 0:
                             self.total = 0
 
-            def calculate_dynamic_attributes_from_total_level(
-                    self, keys, is_attribute_dynamic, attribute_names):
-                dynamic_attribute_names = [x for x in attribute_names if
-                                           is_attribute_dynamic[x]]
-                max_step_size_level = getattr(constants.levels.max.step_size, keys)
-
-                # if len(dynamic_attribute_names) != 3:
-                #     raise Exception('I still did not write the code for how to '
-                #                     'calculate the attribute level from the total level '
-                #                     'when not all attributes are dynamic')
-                if dynamic_attribute_names == ['intervals', 'step_size']:
-                    if self.total <= max_step_size_level:
-                        self.number_of_notes = None
-                        self.intervals = 0
-                        self.step_size = self.total
-                    elif self.total > max_step_size_level:
-                        current_level = self.total - max_step_size_level - 1
-                        self.intervals, self.step_size = np.divmod(
-                            current_level, max_step_size_level + 1)
-                        self.intervals = self.intervals + 1
-                elif len(dynamic_attribute_names) == 3:
-                    if self.total <= max_step_size_level:
-                        self.number_of_notes = 0
-                        self.intervals = None
-                        self.step_size = self.total
-                    elif self.total > max_step_size_level:
-                        current_level = self.total - max_step_size_level - 1
-                        self.number_of_notes, remainder = \
-                            np.divmod(current_level,
-                                      (getattr(constants.levels.max.intervals, keys) + 1) *
-                                      (getattr(constants.levels.max.step_size, keys) + 1))
-                        self.number_of_notes = self.number_of_notes + 1
-                        self.intervals, self.step_size = np.divmod(
-                            remainder, getattr(constants.levels.max.step_size, keys) + 1)
-
-            def calculate_total_level_from_dynamic_attributes(self):
-                self.total = self.number_of_notes * \
-                             constants.levels.intervals.shape[0] * \
-                             constants.levels.step_size.shape[0] + \
-                             self.intervals * \
-                             constants.levels.step_size.shape[0] + \
-                             self.step_size
-
             def set_level_after_correct_answer(
                     self, phase, mistakes_counter, iteration_list, max_level):
                 previous_raw_answer_time = iteration_list[-1].answer.time.raw
@@ -202,35 +102,6 @@ class Iteration:
                 if self.total < 0:
                     self.total = 0
 
-        class Step:
-            def __init__(self, keys, size=None, trend=None,
-                         current_index=None, previous_index=None,
-                         difficulty_level=None):
-                if (size is not None or trend is not None) and current_index is not None:
-                    raise Exception('step object is over-defined')
-
-                if size is not None:
-                    self.size = size
-                elif current_index is not None and previous_index is not None:
-                    self.size = abs(current_index - previous_index) + 1
-                elif difficulty_level is not None:
-                    p = getattr(constants.levels.step_size, keys)
-                    p = p[difficulty_level, :]
-                    if constants.show_step_options:
-                        x = np.arange(len(p))
-                        print('step option: ' + str(x[p>0]+1))
-                    self.size = np.random.choice(
-                        np.arange(1, constants.max_step_size(keys=keys) + 1), 1, p=p)
-                    self.size = self.size[0]
-                else:
-                    raise Exception('Can not determine step size. Not enough inputs.')
-
-                if trend is not None:
-                    self.trend = np.array(trend)
-                elif current_index is not None and previous_index is not None:
-                    self.trend = np.sign(self.size)
-                else:
-                    self.trend = (-1) ** np.random.binomial(1, 0.5)
 
         class Note:
             def __init__(self, keys=None, index=None, names=None, numbers=None,
@@ -299,12 +170,6 @@ class Iteration:
 
             def initialize_with_name(self, name, keys):
                 raise Exception('this need work: initialize_with_name in "note"')
-                # self.name = name
-                # self.number = constants.name_to_number_dictionary[self.name]
-                # # self.number = np.array(self.number)
-                # self.index = np.in1d(
-                #     constants.note_numbers_C_to_C,
-                #     self.number).nonzero()[0]
 
         @staticmethod
         def create_none_list_if_necessary(list_or_none, size):
@@ -321,6 +186,204 @@ class Iteration:
                 else: # elif type(list_or_none) is not list and type(list_or_none) is not np.array:
                     raise Exception('note attributes inputs must be lists or numpy arrays')
             return output
+
+    class Question_Steps_and_Intervals(Question):
+        class Level:
+            @staticmethod
+            def raise_exceptions_level_literals(level_att):
+                for att_name, att_val in level_att.items():
+                    if att_val is not None:
+                        if att_val not in range(1 + getattr(constants.levels.max, att_name)):
+                            raise Exception('invalid ' + att_name + ' level')
+
+            def __init__(self, iteration_list, phase, mistakes_counter,
+                         max_level):
+                pass
+
+            def set_level_attributes_if_literal_otherwise_something_else(
+                    self, iteration_list, attribute_names,
+                    attributes, attribute_levels, user):
+                attribute_level_is_dynamic = {}
+                for attribute, attribute_level, attribute_name in \
+                        zip(attributes, attribute_levels, attribute_names):
+                    attribute_level_is_dynamic[attribute_name] = False
+                    if attribute is not None:
+                        if attribute_level is not None:
+                            raise Exception(attribute_name + ' is not None and ' + attribute_name + ' level is also not None')
+                        else:
+                            setattr(self, attribute_name, None)
+                    else:  # attribute is None
+                        if attribute_level is not None:
+                            setattr(self, attribute_name, attribute_level)
+                        else:  # attribute_level is None
+                            attribute_level_is_dynamic[attribute_name] = True
+                            if len(iteration_list) == 0:
+                                initial_attribute_level = getattr(initial.get_level(user=user), attribute_name)
+                                setattr(self, attribute_name, initial_attribute_level)
+                return attribute_level_is_dynamic
+
+            def calculate_total_level_according_to_raw_answer_time(
+                    self, iteration_list, phase, max_level, mistakes_counter, user):
+                if len(iteration_list) == 0:
+                    self.total = initial.get_level(user).total
+                elif len(iteration_list) >= 1:
+                    if iteration_list[-1].answer.type is True:
+                        self.set_level_after_correct_answer(
+                            phase=phase, mistakes_counter=mistakes_counter,
+                            iteration_list=iteration_list,
+                            max_level=max_level)
+                    elif iteration_list[-1].answer.type is False:
+                        if iteration_list[-1].phase == 'exponential':
+                            if len(iteration_list) >= 2:
+                                answers = [q.answer.type for q in iteration_list]
+                                error_indices = [i for i, r in enumerate(answers) if r is False]
+                                y = len(iteration_list) - 1
+                                if len(error_indices) >= 2:
+                                    x = error_indices[-2]
+                                else:
+                                    x = 0
+                                index = round((x + y) / 2)
+                                self.total = iteration_list[index].level.total
+                            else:
+                                self.total = 0
+                        elif iteration_list[-1].phase == 'steady state':
+                            self.total = iteration_list[-1].question.level.total + \
+                                         constants.levels.change.additive.decrease_with_error
+                        # self.total = int(iteration_list[-1].level.total /
+                        #                  constants.multiplicative_level_decrease_upon_error)
+                        if self.total < 0:
+                            self.total = 0
+
+            def set_level_after_correct_answer(
+                    self, phase, mistakes_counter, iteration_list, max_level):
+                previous_raw_answer_time = iteration_list[-1].answer.time.raw
+                previous_level = iteration_list[-1].question.level.total
+                previous_number_of_notes = iteration_list[-1].question.number_of_notes
+                a, b, c, d = constants.set_abcd(number_of_notes=previous_number_of_notes)
+                x = previous_raw_answer_time
+                if type(x) is tuple:  # (which is shouldn't be)
+                    x = x[0]
+                if phase == 'exponential':
+                    y = -2 * (x - a) / (b - a) + 1
+                    factor = constants.levels.change.multiplicative.increase
+                    factor = factor ** (1 / (1 + mistakes_counter) ** 2)
+                    factor = factor ** y
+                    print('factor = ' + str(factor))
+                    self.total = (previous_level + 1) * factor
+                    self.total = round(self.total)
+                elif phase == 'steady state':
+                    y = (x - a) * (d - c) / (b - a) + c
+                    y = round(y)
+                    # y = y / len(iteration_list)**0.8
+                    # y = int(np.ceil(y))
+                    self.total = previous_level + y
+                if self.total > max_level:
+                    self.total = max_level
+                if self.total < 0:
+                    self.total = 0
+
+        class Level_Step_and_Intervals(Level):
+            def __init__(self, iteration_list, phase, mistakes_counter,
+                         max_level):
+                level_att = {'number_of_notes': config.number_of_notes_level,
+                             'intervals': config.intervals_level,
+                             'step_size': config.step_size_level}
+                self.raise_exceptions_level_literals(level_att=level_att)
+                attributes = [config.number_of_notes, config.intervals, config.step_size]
+                attribute_names = ['number_of_notes', 'intervals', 'step_size']
+                attribute_levels = [config.number_of_notes_level, config.intervals_level, config.step_size_level]
+
+                is_attribute_dynamic = \
+                    self.set_level_attributes_if_literal_otherwise_something_else(
+                        iteration_list=iteration_list,
+                        attributes=attributes,
+                        attribute_levels=attribute_levels,
+                        attribute_names=attribute_names,
+                        user=config.user)
+                self.dynamic_attributes = {k: v for k, v in is_attribute_dynamic.items() if v is True}
+                if len(self.dynamic_attributes) == 0:
+                    self.total = None
+                else:
+                    self.calculate_total_level_according_to_raw_answer_time(
+                        iteration_list, phase, max_level=max_level, mistakes_counter=mistakes_counter,
+                        user=config.user)
+                    self.number_of_notes = None
+                    self.intervals = None
+                    self.step_size = None
+                    self.calculate_dynamic_attributes_from_total_level(
+                        is_attribute_dynamic=is_attribute_dynamic,
+                        attribute_names=attribute_names, keys=config.keys)
+
+                    if constants.show_total_level:
+                        print('level.total = ' + str(self.total))
+                        # print('number_of_notes level= ' + str(self.number_of_notes))
+                        # print('intervals level = ' + str(self.intervals))
+                        # print('step_size level = ' + str(self.step_size))
+
+            def calculate_dynamic_attributes_from_total_level(
+                    self, keys, is_attribute_dynamic, attribute_names):
+                dynamic_attribute_names = [x for x in attribute_names if
+                                           is_attribute_dynamic[x]]
+                max_step_size_level = getattr(constants.levels.max.step_size, keys)
+
+                # if len(dynamic_attribute_names) != 3:
+                #     raise Exception('I still did not write the code for how to '
+                #                     'calculate the attribute level from the total level '
+                #                     'when not all attributes are dynamic')
+                if dynamic_attribute_names == ['intervals', 'step_size']:
+                    if self.total <= max_step_size_level:
+                        self.number_of_notes = None
+                        self.intervals = 0
+                        self.step_size = self.total
+                    elif self.total > max_step_size_level:
+                        current_level = self.total - max_step_size_level - 1
+                        self.intervals, self.step_size = np.divmod(
+                            current_level, max_step_size_level + 1)
+                        self.intervals = self.intervals + 1
+                elif len(dynamic_attribute_names) == 3:
+                    if self.total <= max_step_size_level:
+                        self.number_of_notes = 0
+                        self.intervals = None
+                        self.step_size = self.total
+                    elif self.total > max_step_size_level:
+                        current_level = self.total - max_step_size_level - 1
+                        self.number_of_notes, remainder = \
+                            np.divmod(current_level,
+                                      (getattr(constants.levels.max.intervals, keys) + 1) *
+                                      (getattr(constants.levels.max.step_size, keys) + 1))
+                        self.number_of_notes = self.number_of_notes + 1
+                        self.intervals, self.step_size = np.divmod(
+                            remainder, getattr(constants.levels.max.step_size, keys) + 1)
+
+        class Step:
+            def __init__(self, keys, size=None, trend=None,
+                         current_index=None, previous_index=None,
+                         difficulty_level=None):
+                if (size is not None or trend is not None) and current_index is not None:
+                    raise Exception('step object is over-defined')
+
+                if size is not None:
+                    self.size = size
+                elif current_index is not None and previous_index is not None:
+                    self.size = abs(current_index - previous_index) + 1
+                elif difficulty_level is not None:
+                    p = getattr(constants.levels.step_size, keys)
+                    p = p[difficulty_level, :]
+                    if constants.show_step_options:
+                        x = np.arange(len(p))
+                        print('step option: ' + str(x[p>0]+1))
+                    self.size = np.random.choice(
+                        np.arange(1, constants.max_step_size(keys=keys) + 1), 1, p=p)
+                    self.size = self.size[0]
+                else:
+                    raise Exception('Can not determine step size. Not enough inputs.')
+
+                if trend is not None:
+                    self.trend = np.array(trend)
+                elif current_index is not None and previous_index is not None:
+                    self.trend = np.sign(self.size)
+                else:
+                    self.trend = (-1) ** np.random.binomial(1, 0.5)
 
         @staticmethod
         def raise_exceptions_for_notes_and_intervals():
@@ -398,7 +461,7 @@ class Iteration:
                 if note_indices[0] is not None:
                     if config.step_size is None:
                         if len(iteration_list) >= 1:
-                            previous_bottom_note_index = iteration_list[-1].question.notes[0].index
+                            previous_bottom_note_index = iteration_list[-1].question.note.indices[0]
                         else:
                             previous_bottom_note_index = initial.indices[0]
                         step = note_indices[0] - previous_bottom_note_index + 1
@@ -411,12 +474,9 @@ class Iteration:
                      mistakes_counter, note_indices=None):
             self.raise_exceptions_for_notes_and_intervals()
 
-            self.max_level = constants.max_level_func(
-                keys=config.keys, step_size=None, intervals=None,
-                number_of_notes=None, step_size_level=None,
-                number_of_notes_level=None, interval_level=None)
+            self.max_level = self.set_max_level()
 
-            self.level = self.Level(iteration_list=iteration_list,
+            self.level = self.Level_Step_and_Intervals(iteration_list=iteration_list,
                                     max_level=self.max_level,
                                     phase=phase, mistakes_counter=mistakes_counter)
 
@@ -465,6 +525,23 @@ class Iteration:
                 else:
                     self.note = []
                     pass
+        
+        @staticmethod
+        def set_max_level():
+            max_level = 0
+            if config.step_size is None and config.step_size_level is None:
+                max_level = max_level + getattr(constants.levels.max.step_size, config.keys)
+            if config.intervals is None and config.intervals_level is None:
+                if config.number_of_notes is None:
+                    max_level = max(1, max_level) + getattr(constants.levels.max.intervals, config.keys) * max(1, max_level) * 4
+                elif config.number_of_notes > 1:
+                    max_level = max_level + getattr(constants.levels.max.intervals, config.keys) * max(1, max_level)
+                elif config.number_of_notes == 1:
+                    pass
+            if config.number_of_notes is None and config.number_of_notes_level is None:
+                if config.intervals is not None:
+                    max_level = max_level + (constants.levels.max.number_of_notes-1) * max(1, max_level)
+            return max_level
 
         def set_chord_step_and_bottom_note(
                 self, previous_note_indices, i,
@@ -514,7 +591,8 @@ class Iteration:
                 # self.note.append(self.Note(keys=keys, index=note_indices[index_in_chord],
                 #                             number=note_numbers[index_in_chord],
                 #                             name=note_names[index_in_chord]))
-                intervals[index_in_chord - 1] = self.note[-1].index - self.note[-2].index + 1
+                intervals[index_in_chord - 1] = self.note.indices[index_in_chord] - \
+                    self.note.indices[index_in_chord-1] + 1
             else:
                 if intervals[index_in_chord - 1] is None:
                     p = getattr(constants.levels.intervals, keys)
@@ -528,6 +606,13 @@ class Iteration:
                 note_index = note_index[0]
                 self.note.indices[index_in_chord] = note_index
                 # self.note.append(self.Note(keys=keys, index=note_index))
+
+    class Question_notes_from_a_box(Question):
+        def __init__(self):
+            self.max_level = 2 
+        def set_max_level(self):
+
+            pass
 
     class Answer:
         # class Flag:
@@ -570,6 +655,7 @@ class Iteration:
         self.answer.text = input("Identify Note:")
         self.answer.text = self.answer.text.strip()
         self.answer.time.raw = time.time() - question_start_time
+        self.answer.time.datetime = datetime.now()
         answer_time_now_fraction = self.answer.time.raw - np.round(self.answer.time.raw)
         time.sleep(constants.quarter_note_time - answer_time_now_fraction)
         # note_numbers = [note.number for note in iteration.chord.notes]
@@ -682,37 +768,37 @@ class Iteration:
         if len(iteration_list) == 0:
             if config.play_intro:
                 self.intro(x=2)
-            self.question = self.Question(mistakes_counter=self.mistakes_counter,
+            self.question = self.Question_Steps_and_Intervals(mistakes_counter=self.mistakes_counter,
                                           phase=self.phase, iteration_list=iteration_list,
                                           previous_note_indices=initial.indices(keys=config.keys))
         elif len(iteration_list) == 1:
             previous_note_indices = iteration_list[-1].question.note.indices
             if iteration_list[-1].answer.type is True:
-                self.question = self.Question(mistakes_counter=self.mistakes_counter,
+                self.question = self.Question_Steps_and_Intervals(mistakes_counter=self.mistakes_counter,
                                               phase=self.phase, iteration_list=iteration_list,
                                               previous_note_indices=previous_note_indices)
             elif iteration_list[-1].answer.type is False:
-                self.question = self.Question(mistakes_counter=self.mistakes_counter,
+                self.question = self.Question_Steps_and_Intervals(mistakes_counter=self.mistakes_counter,
                                               phase=self.phase, iteration_list=iteration_list,
                                               previous_note_indices=previous_note_indices,
                                               note_indices=initial.indices(keys=config.keys))
         elif len(iteration_list) >= 2:
             previous_note_indices = iteration_list[-1].question.note.indices
             if iteration_list[-1].answer.type is True:
-                self.question = self.Question(mistakes_counter=self.mistakes_counter,
+                self.question = self.Question_Steps_and_Intervals(mistakes_counter=self.mistakes_counter,
                                               phase=self.phase, iteration_list=iteration_list,
                                               previous_note_indices=previous_note_indices)
             elif iteration_list[-1].answer.type is False:
                 if iteration_list[-2].answer.type is True:
-                    note_indices = [note.index for note in iteration_list[-2].question.notes]
-                    self.question = self.Question(mistakes_counter=self.mistakes_counter,
+                    note_indices = iteration_list[-2].question.note.indices
+                    self.question = self.Question_Steps_and_Intervals(mistakes_counter=self.mistakes_counter,
                                                   phase=self.phase, iteration_list=iteration_list,
                                                   note_indices=note_indices,
                                                   previous_note_indices=previous_note_indices)
                 elif iteration_list[-2].answer.type is False:
                     if config.play_intro:
                         self.intro(x=2)
-                    self.question = self.Question(mistakes_counter=self.mistakes_counter,
+                    self.question = self.Question_Steps_and_Intervals(mistakes_counter=self.mistakes_counter,
                                                   phase=self.phase, iteration_list=iteration_list,
                                                   previous_note_indices=initial.indices(keys=config.keys))
 
@@ -766,18 +852,22 @@ def main():
         pickle.dump(answer_times, open(file_name, "wb"))
     else:
         iteration_list = iteration_list[:-1]
-        file_name = 'users\\' + config.user + '\\iteration_list.pkl'
-        if os.path.isfile(file_name): 
+        file_name = 'users\\' + config.user + '\\list_of_iteration_lists.pkl'
+        # if os.path.isfile(file_name): 
+        try:
             with open(file_name, 'rb') as input:
-                previous_iteration_list = pickle.load(input)
-        else:
-            previous_iteration_list = []
-        iteration_list = previous_iteration_list + iteration_list
+                list_of_iteration_lists = pickle.load(input)
+        except:
+            list_of_iteration_lists = []
+        if len(iteration_list) > 0:
+            list_of_iteration_lists.append(iteration_list)
         with open(file_name, 'wb') as output:
-            pickle.dump(iteration_list, output, pickle.HIGHEST_PROTOCOL)
-        with open('users\\' + config.user + '\\level.pkl', 'wb') as output:
-            pickle.dump(iteration_list[-1].question.level.total, output, pickle.HIGHEST_PROTOCOL)
-        plot_functions.my_plot(iteration_list=iteration_list, keys=config.keys)
+            pickle.dump(list_of_iteration_lists, output, pickle.HIGHEST_PROTOCOL)
+        if len(iteration_list) > 0:
+            with open('users\\' + config.user + '\\level.pkl', 'wb') as output:
+                pickle.dump(iteration_list[-1].question.level.total, output, pickle.HIGHEST_PROTOCOL)
+        if len(list_of_iteration_lists) > 0:
+            plot_functions.my_plot(list_of_iteration_lists=list_of_iteration_lists, keys=config.keys)
 
     print('this is the end of MAIN')
 

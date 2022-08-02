@@ -21,11 +21,12 @@ class Level:
             self.step_size = None
             self.number_of_notes = None
             self.intervals = None
-            self.total = 97
-            file_name = 'users\\' + user + '\\level.pkl'
+            self.total = 140
+            file_name = 'users\\' + user + '\\iteration_list.pkl'
             if os.path.isfile(file_name):
                 with open(file_name, 'rb') as inp:
-                    self.total = pickle.load(inp)
+                    iteration_list = pickle.load(inp)
+                    self.total = iteration_list[-1].question.level.total
         # self.total = self.number_of_notes * \
         #              constants.levels.intervals.shape[0] * \
         #              constants.levels.step_size.shape[0] + \
