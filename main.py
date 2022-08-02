@@ -763,7 +763,7 @@ class Iteration:
                 if note_indices[0] is not None:
                     if config.step_size is None:
                         if len(iteration_list) >= 1:
-                            previous_bottom_note_index = iteration_list[-1].question.notes[0].index
+                            previous_bottom_note_index = iteration_list[-1].question.note.indices[0]
                         else:
                             previous_bottom_note_index = initial.indices[0]
                         step = note_indices[0] - previous_bottom_note_index + 1
@@ -879,7 +879,8 @@ class Iteration:
                 # self.note.append(self.Note(keys=keys, index=note_indices[index_in_chord],
                 #                             number=note_numbers[index_in_chord],
                 #                             name=note_names[index_in_chord]))
-                intervals[index_in_chord - 1] = self.note[-1].index - self.note[-2].index + 1
+                intervals[index_in_chord - 1] = self.note.indices[index_in_chord] - \
+                    self.note.indices[index_in_chord-1] + 1
             else:
                 if intervals[index_in_chord - 1] is None:
                     p = getattr(constants.levels.intervals, keys)
@@ -1070,7 +1071,7 @@ class Iteration:
                                               previous_note_indices=previous_note_indices)
             elif iteration_list[-1].answer.type is False:
                 if iteration_list[-2].answer.type is True:
-                    note_indices = [note.index for note in iteration_list[-2].question.notes]
+                    note_indices = iteration_list[-2].question.note.indices
                     self.question = self.Question_Steps_and_Intervals(mistakes_counter=self.mistakes_counter,
                                                   phase=self.phase, iteration_list=iteration_list,
                                                   note_indices=note_indices,
