@@ -852,19 +852,22 @@ def main():
         pickle.dump(answer_times, open(file_name, "wb"))
     else:
         iteration_list = iteration_list[:-1]
-        file_name = 'users\\' + config.user + '\\iteration_list.pkl'
+        file_name = 'users\\' + config.user + '\\list_of_iteration_lists.pkl'
         # if os.path.isfile(file_name): 
         try:
             with open(file_name, 'rb') as input:
-                previous_iteration_list = pickle.load(input)
+                list_of_iteration_lists = pickle.load(input)
         except:
-            previous_iteration_list = []
-        iteration_list = previous_iteration_list + iteration_list
+            list_of_iteration_lists = []
+        if len(iteration_list) > 0:
+            list_of_iteration_lists.append(iteration_list)
         with open(file_name, 'wb') as output:
-            pickle.dump(iteration_list, output, pickle.HIGHEST_PROTOCOL)
-        with open('users\\' + config.user + '\\level.pkl', 'wb') as output:
-            pickle.dump(iteration_list[-1].question.level.total, output, pickle.HIGHEST_PROTOCOL)
-        plot_functions.my_plot(iteration_list=iteration_list, keys=config.keys)
+            pickle.dump(list_of_iteration_lists, output, pickle.HIGHEST_PROTOCOL)
+        if len(iteration_list) > 0:
+            with open('users\\' + config.user + '\\level.pkl', 'wb') as output:
+                pickle.dump(iteration_list[-1].question.level.total, output, pickle.HIGHEST_PROTOCOL)
+        if len(list_of_iteration_lists) > 0:
+            plot_functions.my_plot(list_of_iteration_lists=list_of_iteration_lists, keys=config.keys)
 
     print('this is the end of MAIN')
 
