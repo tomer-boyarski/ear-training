@@ -8,7 +8,7 @@ import constants
 import time
 import numpy as np
 from termcolor import colored
-
+from datetime import datetime
 
 class Iteration:
     class Question:
@@ -19,10 +19,6 @@ class Iteration:
                     if att_val is not None:
                         if att_val not in range(1 + getattr(constants.levels.max, att_name)):
                             raise Exception('invalid ' + att_name + ' level')
-
-            def __init__(self, iteration_list, phase, mistakes_counter,
-                         max_level):
-                pass
 
             def set_level_attributes_if_literal_otherwise_something_else(
                     self, iteration_list, attribute_names,
@@ -108,23 +104,23 @@ class Iteration:
 
 
         class Note:
-            def __init__(self, keys, index=None, name=None, number=None,
-                         interval=None, lower_note=None,
-                         level=None):
+            def __init__(self, keys=None, index=None, names=None, numbers=None,
+                         interval=None, lower_note=None, indices=None, 
+                         level=None, number_of_notes=None):
 
-                self.index = index
-                self.name = name
-                self.number = number
+                self.indices = indices 
+                self.names = names
+                self.numbers = numbers
 
-                self.raise_exceptions(index, name, number, interval, lower_note)
+                # self.raise_exceptions(index, name, number, interval, lower_note)
 
             # def new_note_method(self):
-                if self.index is not None:
-                    self.initialize_with_index(index=self.index, keys=keys)
-                elif self.name is not None:
-                    self.initialize_with_name(name=self.name, keys=keys)
-                elif self.number is not None:
-                    self.initialize_with_number(number=self.number, keys=keys)
+                # if self.indices is not None:
+                #     self.initialize_with_index(index=self.indices, keys=keys)
+                # elif self.name is not None:
+                #     self.initialize_with_name(name=self.name, keys=keys)
+                # elif self.number is not None:
+                #     self.initialize_with_number(number=self.number, keys=keys)
 
             @staticmethod
             def raise_exceptions(index, name, number, interval, lower_note):
@@ -147,20 +143,22 @@ class Iteration:
                     raise Exception('Can not define note with the following attribute: ' +
                                     my_str)
 
-            def initialize_with_index(self, index, keys):
-                self.index = index
-                if keys == 'white':
-                    self.number = constants.keys.white.numbers[index]
-                    same_note_bottom_octave = constants.keys.white.numbers[0] + self.number % 12
-                    name_index = np.where(constants.keys.white.numbers == same_note_bottom_octave)
-                    name_index = name_index[0][0]
-                    self.name = constants.keys.white.names[name_index]
-                elif keys == 'all':
-                    self.number = constants.keys.all.number[index]
-                    same_note_bottom_octave = constants.keys.all.number[0] + self.number % 12
-                    name_index = np.where(constants.keys.all.number == same_note_bottom_octave)
-                    name_index = name_index[0][0]
-                    self.name = constants.keys.all.name[name_index]
+            def initialize_with_index(self, keys):
+                for note_index_in_chord, note_index_in_scale in enumerate(self.indices):
+                    if keys == 'white':
+                        self.numbers[note_index_in_chord] = constants.keys.white.numbers[note_index_in_scale]
+                        same_note_bottom_octave = constants.keys.white.numbers[0] +\
+                            self.numbers[note_index_in_chord] % 12
+                        name_index = np.where(constants.keys.white.numbers == same_note_bottom_octave)
+                        name_index = name_index[0][0]
+                        self.names[note_index_in_chord] = constants.keys.white.names[name_index]
+                    elif keys == 'all':
+                        self.numbers[note_index_in_chord] = constants.keys.all.number[note_index_in_scale]
+                        same_note_bottom_octave = constants.keys.all.number[0] + \
+                            self.numbers[note_index_in_chord] % 12
+                        name_index = np.where(constants.keys.all.number == same_note_bottom_octave)
+                        name_index = name_index[0][0]
+                        self.names[note_index_in_chord] = constants.keys.all.name[name_index]
 
             def initialize_with_number(self, number, keys):
                 raise Exception('this need work: initialize_with_number in "note"')
@@ -172,12 +170,6 @@ class Iteration:
 
             def initialize_with_name(self, name, keys):
                 raise Exception('this need work: initialize_with_name in "note"')
-                # self.name = name
-                # self.number = constants.name_to_number_dictionary[self.name]
-                # # self.number = np.array(self.number)
-                # self.index = np.in1d(
-                #     constants.note_numbers_C_to_C,
-                #     self.number).nonzero()[0]
 
         @staticmethod
         def create_none_list_if_necessary(list_or_none, size):
@@ -194,42 +186,6 @@ class Iteration:
                 else: # elif type(list_or_none) is not list and type(list_or_none) is not np.array:
                     raise Exception('note attributes inputs must be lists or numpy arrays')
             return output
-
-        @staticmethod
-        def get_number_of_notes_intervals_and_step_size_from_literals(
-                iteration_list, note_indices=None):
-            number_of_notes = None
-            if note_indices is None:
-                number_of_notes = config.number_of_notes
-            intervals = config.intervals
-            step_size = config.step_size
-            step_trend = config.step_trend
-            if len(config.note_attributes) != 0:
-                for key, a_list in config.note_attributes.items():
-                    number_of_notes = len(a_list)
-            elif config.intervals is not None:
-                number_of_notes = len(config.intervals) + 1
-
-            if note_indices is None:
-                note_indices = config.note_indices
-            if note_indices is not None:
-                number_of_notes = len(note_indices)
-                if None not in note_indices:
-                    if config.intervals is None:
-                        note_indices = np.array(note_indices)
-                        intervals = note_indices[1:] - note_indices[:-1] + 1
-                        intervals = intervals.tolist()
-                if note_indices[0] is not None:
-                    if config.step_size is None:
-                        if len(iteration_list) >= 1:
-                            previous_bottom_note_index = iteration_list[-1].question.notes[0].index
-                        else:
-                            previous_bottom_note_index = initial.indices[0]
-                        step = note_indices[0] - previous_bottom_note_index + 1
-                        # step = step[0]
-                        step_size = abs(step)
-                        step_trend = np.sign(step_size)
-            return number_of_notes, intervals, step_size, step_trend
 
     class Question_Steps_and_Intervals(Question):
         class Level:
@@ -429,80 +385,6 @@ class Iteration:
                 else:
                     self.trend = (-1) ** np.random.binomial(1, 0.5)
 
-        class Note:
-            def __init__(self, keys=None, index=None, names=None, numbers=None,
-                         interval=None, lower_note=None, indices=None, 
-                         level=None, number_of_notes=None):
-
-                self.indices = indices 
-                self.names = names
-                self.numbers = numbers
-
-                # self.raise_exceptions(index, name, number, interval, lower_note)
-
-            # def new_note_method(self):
-                # if self.indices is not None:
-                #     self.initialize_with_index(index=self.indices, keys=keys)
-                # elif self.name is not None:
-                #     self.initialize_with_name(name=self.name, keys=keys)
-                # elif self.number is not None:
-                #     self.initialize_with_number(number=self.number, keys=keys)
-
-            @staticmethod
-            def raise_exceptions(index, name, number, interval, lower_note):
-                note_attributes = {'index': index,
-                                   'name': name,
-                                   'number': number}
-                note_attributes = {k: v for k, v in note_attributes.items() if v is not None}
-                if len(note_attributes) > 1:
-                    my_str = ''.join([k + '=' + str(v) + ', ' for k, v in note_attributes.items()])
-                    my_str = my_str[:-2]
-                    raise Exception('Can not define note with the following attribute: ' +
-                                    my_str)
-                relative_attributes = {'interval': interval,
-                                       'lower_note': lower_note}
-                relative_attributes = {k: v for k, v in relative_attributes.items() if v is not None}
-                if len(note_attributes) == 1 and len(relative_attributes) > 0:
-                    merged_attributes = {**note_attributes, **relative_attributes}
-                    my_str = ''.join([k + '=' + str(v) + ', ' for k, v in merged_attributes.items()])
-                    my_str = my_str[:-2]
-                    raise Exception('Can not define note with the following attribute: ' +
-                                    my_str)
-
-            def initialize_with_index(self, keys):
-                for note_index_in_chord, note_index_in_scale in enumerate(self.indices):
-                    if keys == 'white':
-                        self.numbers[note_index_in_chord] = constants.keys.white.numbers[note_index_in_scale]
-                        same_note_bottom_octave = constants.keys.white.numbers[0] +\
-                            self.numbers[note_index_in_chord] % 12
-                        name_index = np.where(constants.keys.white.numbers == same_note_bottom_octave)
-                        name_index = name_index[0][0]
-                        self.names[note_index_in_chord] = constants.keys.white.names[name_index]
-                    elif keys == 'all':
-                        self.numbers[note_index_in_chord] = constants.keys.all.number[note_index_in_scale]
-                        same_note_bottom_octave = constants.keys.all.number[0] + \
-                            self.numbers[note_index_in_chord] % 12
-                        name_index = np.where(constants.keys.all.number == same_note_bottom_octave)
-                        name_index = name_index[0][0]
-                        self.names[note_index_in_chord] = constants.keys.all.name[name_index]
-
-            def initialize_with_number(self, number, keys):
-                raise Exception('this need work: initialize_with_number in "note"')
-                # self.number = number
-                # self.index = np.in1d(
-                #     constants.white_note.numbers,
-                #     number).nonzero()[0]
-                # self.name = constants.white_note.names[self.number % 12]
-
-            def initialize_with_name(self, name, keys):
-                raise Exception('this need work: initialize_with_name in "note"')
-                # self.name = name
-                # self.number = constants.name_to_number_dictionary[self.name]
-                # # self.number = np.array(self.number)
-                # self.index = np.in1d(
-                #     constants.note_numbers_C_to_C,
-                #     self.number).nonzero()[0]
-
         @staticmethod
         def raise_exceptions_for_notes_and_intervals():
             # Check that all note attributes are valid
@@ -592,10 +474,7 @@ class Iteration:
                      mistakes_counter, note_indices=None):
             self.raise_exceptions_for_notes_and_intervals()
 
-            self.max_level = constants.max_level_func(
-                keys=config.keys, step_size=None, intervals=None,
-                number_of_notes=None, step_size_level=None,
-                number_of_notes_level=None, interval_level=None)
+            self.max_level = self.set_max_level()
 
             self.level = self.Level_Step_and_Intervals(iteration_list=iteration_list,
                                     max_level=self.max_level,
@@ -646,6 +525,23 @@ class Iteration:
                 else:
                     self.note = []
                     pass
+        
+        @staticmethod
+        def set_max_level():
+            max_level = 0
+            if config.step_size is None and config.step_size_level is None:
+                max_level = max_level + getattr(constants.levels.max.step_size, config.keys)
+            if config.intervals is None and config.intervals_level is None:
+                if config.number_of_notes is None:
+                    max_level = max(1, max_level) + getattr(constants.levels.max.intervals, config.keys) * max(1, max_level) * 4
+                elif config.number_of_notes > 1:
+                    max_level = max_level + getattr(constants.levels.max.intervals, config.keys) * max(1, max_level)
+                elif config.number_of_notes == 1:
+                    pass
+            if config.number_of_notes is None and config.number_of_notes_level is None:
+                if config.intervals is not None:
+                    max_level = max_level + (constants.levels.max.number_of_notes-1) * max(1, max_level)
+            return max_level
 
         def set_chord_step_and_bottom_note(
                 self, previous_note_indices, i,
@@ -711,6 +607,12 @@ class Iteration:
                 self.note.indices[index_in_chord] = note_index
                 # self.note.append(self.Note(keys=keys, index=note_index))
 
+    class Question_notes_from_a_box(Question):
+        def __init__(self):
+            self.max_level = 2 
+        def set_max_level(self):
+
+            pass
 
     class Answer:
         # class Flag:
@@ -753,6 +655,7 @@ class Iteration:
         self.answer.text = input("Identify Note:")
         self.answer.text = self.answer.text.strip()
         self.answer.time.raw = time.time() - question_start_time
+        self.answer.time.datetime = datetime.now()
         answer_time_now_fraction = self.answer.time.raw - np.round(self.answer.time.raw)
         time.sleep(constants.quarter_note_time - answer_time_now_fraction)
         # note_numbers = [note.number for note in iteration.chord.notes]

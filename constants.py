@@ -180,29 +180,6 @@ class ClassOfLevels:
 
 levels = ClassOfLevels()
 
-
-def max_level_func(keys, step_size=None,
-                   intervals=None,
-                   number_of_notes=None,
-                   step_size_level=None,
-                   number_of_notes_level=None,
-                   interval_level=None):
-    max_level = 0
-    if step_size is None and step_size_level is None:
-        max_level = max_level + getattr(levels.max.step_size, keys)
-    if intervals is None and interval_level is None:
-        if number_of_notes is None:
-            max_level = max(1, max_level) + getattr(levels.max.intervals, keys) * max(1, max_level) * 4
-        elif number_of_notes > 1:
-            max_level = max_level + getattr(levels.max.intervals, keys) * max(1, max_level)
-        elif number_of_notes == 1:
-            pass
-    if number_of_notes is None and number_of_notes_level is None:
-        if intervals is not None:
-            max_level = max_level + (levels.max.number_of_notes-1) * max(1, max_level)
-    return max_level
-
-
 max_chord_size = levels.number_of_notes.shape[1]
 
 reveal = False
