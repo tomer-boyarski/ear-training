@@ -23,16 +23,11 @@ class Level:
             self.intervals = None
             self.total = 140
             file_name = 'users\\' + user + '\\iteration_list.pkl'
-            if os.path.isfile(file_name):
-                with open(file_name, 'rb') as inp:
-                    iteration_list = pickle.load(inp)
-                    self.total = iteration_list[-1].question.level.total
-        # self.total = self.number_of_notes * \
-        #              constants.levels.intervals.shape[0] * \
-        #              constants.levels.step_size.shape[0] + \
-        #              self.intervals * \
-        #              constants.levels.step_size.shape[0] + \
-        #              self.step_size
+            # if os.path.isfile(file_name):
+            #     with open(file_name, 'rb') as inp:
+            #         iteration_list = pickle.load(inp)
+            #         self.total = iteration_list[-1].question.level.total
+
 
 
 def get_level(user):

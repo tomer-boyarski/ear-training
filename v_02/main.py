@@ -748,7 +748,7 @@ class Iteration:
         # if self.chord is None:
         #     self = set_chord(self, iteration_list)
         #     self = set_volume(self, iteration_list)
-        if constants.reveal:
+        if constants.show_notes:
             note_numbers = [note.number for note in self.question.notes]
             print(note_numbers)
             note_names = [note.name for note in self.question.notes]

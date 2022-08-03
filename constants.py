@@ -16,6 +16,7 @@ class Keys:
             self.numbers = numbers
             self.names = ['C', 'D', 'E', 'F', 'G', 'A', 'B']
             self.indices = np.arange(len(numbers))
+            self.per_octave = 7
 
     class All:
         def __init__(self):
@@ -23,6 +24,7 @@ class Keys:
             self.numbers = np.unique(np.concatenate((self.numbers, self.numbers + 24)))
             self.indices = np.arange(len(self.numbers))
             self.names = ['C', 'CS', 'D', 'DS', 'E', 'F', 'FS', 'G', 'GS', 'A', 'AS', 'B']
+            self.per_octave = 12
 
     def __init__(self):
         self.white = self.White()
@@ -182,10 +184,12 @@ levels = ClassOfLevels()
 
 max_chord_size = levels.number_of_notes.shape[1]
 
-reveal = False
-show_total_level = True
+show_notes = False
+show_step = False
+show_intervals = False
+show_total_level = False
 show_phase = False
-show_step_options = True
+show_step_options = False
 
 def set_abcd(number_of_notes):
     if number_of_notes == 1:

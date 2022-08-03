@@ -9,6 +9,8 @@ import time
 import numpy as np
 from termcolor import colored
 from datetime import datetime
+import copy
+
 
 class Iteration:
     class Question:
@@ -108,7 +110,7 @@ class Iteration:
                          interval=None, lower_note=None, indices=None, 
                          level=None, number_of_notes=None):
 
-                self.indices = indices 
+                self.indices = copy.copy(indices)
                 self.names = names
                 self.numbers = numbers
 
@@ -193,7 +195,10 @@ class Iteration:
             def raise_exceptions_level_literals(level_att):
                 for att_name, att_val in level_att.items():
                     if att_val is not None:
-                        if att_val not in range(1 + getattr(constants.levels.max, att_name)):
+                        max_att_level = getattr(constants.levels.max, att_name)
+                        if att_name != 'number_of_notes':
+                            max_att_level = getattr(max_att_level, config.keys)
+                        if att_val not in range(1 + max_att_level):
                             raise Exception('invalid ' + att_name + ' level')
 
             def __init__(self, iteration_list, phase, mistakes_counter,
@@ -369,9 +374,6 @@ class Iteration:
                 elif difficulty_level is not None:
                     p = getattr(constants.levels.step_size, keys)
                     p = p[difficulty_level, :]
-                    if constants.show_step_options:
-                        x = np.arange(len(p))
-                        print('step option: ' + str(x[p>0]+1))
                     self.size = np.random.choice(
                         np.arange(1, constants.max_step_size(keys=keys) + 1), 1, p=p)
                     self.size = self.size[0]
@@ -505,26 +507,49 @@ class Iteration:
                 note_indices = config.note_indices
             note_indices = self.create_none_list_if_necessary(list_or_none=note_indices, size=self.number_of_notes)
             self.note = self.Note(names=note_names, numbers=note_numbers, indices=note_indices)
+            if config.step_top_or_bottom == 'top':
+                previous_note_indices = np.array(previous_note_indices)
+                previous_note_indices = np.flip(previous_note_indices)
+            if constants.show_step_options:
+                p = getattr(constants.levels.step_size, config.keys)
+                p = p[self.level.step_size, :]
+                x = np.arange(len(p))
+                print('step option: ' + str(x[p>0]+1))
             while True:
-                for i in range(self.number_of_notes):
-                    if i == 0:
-                        self.set_chord_step_and_bottom_note(previous_note_indices=previous_note_indices, i=i,
-                                                            note_names=note_names, note_numbers=note_numbers,
-                                                            note_indices=note_indices,
-                                                            level=self.level)
-                    elif i >= 1:
-                        self.set_interval_and_non_bottom_note(
-                            index_in_chord=i,
-                            note_names=note_names, note_numbers=note_numbers, note_indices=note_indices,
+                for index_in_chord in np.arange(self.number_of_notes):
+                    if index_in_chord == 0:
+                        self.set_chord_step_and_top_or_bottom_note(
+                            previous_note_indices=previous_note_indices, 
+                            index_in_chord=index_in_chord,
+                            note_names=note_names, note_numbers=note_numbers,
+                            note_indices=note_indices,
+                            level=self.level)
+                        if constants.show_step:
+                            print('step size = ' + str(self.step.size) + ' step trend = ' + str(self.step.trend))
+                    else:
+                        self.set_interval_and_note(
+                            index_in_chord=index_in_chord,
+                            note_names=note_names, note_numbers=note_numbers, 
+                            note_indices=note_indices,
                             intervals=intervals,
                             level=self.level)
-                # indices = [note.index for note in self.note]
-                if all(index in constants.keys.white.indices for index in self.note.indices):
+                keys_obj = getattr(constants.keys, config.keys)
+                possible_note_indices = keys_obj.indices
+                indices = self.note.indices
+                if config.step_top_or_bottom == 'top':
+                    indices = np.array(indices)
+                    indices = indices - self.note.indices[0]
+                    indices = -1 * indices
+                    indices = indices + self.note.indices[0]
+                    indices = np.flip(indices)
+                    self.note.indices = indices
+                elif config.step_top_or_bottom == 'bottom':
+                    pass
+                if all(index in possible_note_indices for index in indices):
                     self.note.initialize_with_index(keys=config.keys)
                     break
                 else:
-                    self.note = []
-                    pass
+                    self.note.indices = copy.copy(note_indices)
         
         @staticmethod
         def set_max_level():
@@ -543,25 +568,21 @@ class Iteration:
                     max_level = max_level + (constants.levels.max.number_of_notes-1) * max(1, max_level)
             return max_level
 
-        def set_chord_step_and_bottom_note(
-                self, previous_note_indices, i,
+        def set_chord_step_and_top_or_bottom_note(
+                self, previous_note_indices, index_in_chord,
                 note_names=None, note_numbers=None, note_indices=None,
                 step_trend=None, step_size=None,
                 level=None):
             keys = config.keys
             note_is_literally_defined = \
-                note_indices[i] is not None or \
-                note_names[i] is not None or \
-                note_numbers[i] is not None
+                note_indices[index_in_chord] is not None or \
+                note_names[index_in_chord] is not None or \
+                note_numbers[index_in_chord] is not None
             step_is_literally_defined = step_size is not None or step_trend is not None
             if note_is_literally_defined:
-                # if not step_is_literally_defined:
-                # self.note.append(self.Note(keys=keys, index=note_indices[i],
-                #                             number=note_numbers[i],
-                #                             name=note_names[i]))
                 self.step = self.Step(keys=keys,
-                                 current_index=note_indices[i],
-                                 previous_index=previous_note_indices[i])
+                                 current_index=note_indices[index_in_chord],
+                                 previous_index=previous_note_indices[index_in_chord])
             else:
                 while True:
                     if step_is_literally_defined:
@@ -569,14 +590,18 @@ class Iteration:
                                          trend=step_trend)
                     else:
                         self.step = self.Step(keys=keys, difficulty_level=level.step_size)
-                    new_bottom_index = previous_note_indices[0] + \
+                    new_note_index = previous_note_indices[index_in_chord] + \
                                        (self.step.size - 1) * self.step.trend
-                    if 0 <= new_bottom_index < len(constants.keys.white.numbers) / 2:
-                        self.note.indices[i] = new_bottom_index
-                        # self.note.append(self.Note(keys=keys, index=new_bottom_index))
+                    keys_obj = getattr(constants.keys, keys)
+                    num_notes_per_octave = keys_obj.per_octave
+                    top_note_index_allowed = num_notes_per_octave
+                    if index_in_chord > 0:
+                        top_note_index_allowed = top_note_index_allowed + num_notes_per_octave
+                    if 0 <= new_note_index < top_note_index_allowed:
+                        self.note.indices[index_in_chord] = new_note_index
                         break
 
-        def set_interval_and_non_bottom_note(
+        def set_interval_and_note(
                 self, index_in_chord,
                 note_names=None, note_numbers=None, note_indices=None,
                 intervals=None,
@@ -587,11 +612,8 @@ class Iteration:
                 note_names[index_in_chord] is not None or \
                 note_numbers[index_in_chord] is not None
             if note_is_literally_defined:
-                # if intervals[index_in_chord - 1] is None:
-                # self.note.append(self.Note(keys=keys, index=note_indices[index_in_chord],
-                #                             number=note_numbers[index_in_chord],
-                #                             name=note_names[index_in_chord]))
-                intervals[index_in_chord - 1] = self.note.indices[index_in_chord] - \
+                intervals[index_in_chord - 1] = \
+                    self.note.indices[index_in_chord] - \
                     self.note.indices[index_in_chord-1] + 1
             else:
                 if intervals[index_in_chord - 1] is None:
@@ -605,7 +627,6 @@ class Iteration:
                 note_index = lower_note + intervals[index_in_chord - 1] - 1
                 note_index = note_index[0]
                 self.note.indices[index_in_chord] = note_index
-                # self.note.append(self.Note(keys=keys, index=note_index))
 
     class Question_notes_from_a_box(Question):
         def __init__(self):
@@ -810,7 +831,7 @@ class Iteration:
         # if self.chord is None:
         #     self = set_chord(self, iteration_list)
         #     self = set_volume(self, iteration_list)
-        if constants.reveal:
+        if constants.show_notes:
             print(self.question.note.numbers)
             print(self.question.note.names)
         try:

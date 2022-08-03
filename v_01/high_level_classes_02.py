@@ -136,7 +136,7 @@ class Iteration:
         if self.chord is None:
             self = set_chord(self, question_list)
             self = set_volume(self, question_list)
-        if constants.reveal:
+        if constants.show_notes:
             note_numbers = [note.number for note in self.chord.notes]
             print(note_numbers)
             note_names = [note.name for note in self.chord.notes]

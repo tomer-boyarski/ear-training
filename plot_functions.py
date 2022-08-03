@@ -6,12 +6,14 @@ import constants
 # from collections import namedtuple
 import seaborn as sns
 import matplotlib.dates as mdates
-
+import config
 
 def my_plot(list_of_iteration_lists, keys):
     nrows=3
     ncols = 2
     fig, ax = plt.subplots(nrows=nrows, ncols=ncols, figsize=(8, 4))
+    if config.plot_only_last_session:
+        list_of_iteration_lists = [list_of_iteration_lists[-1]]
     for list_index, iteration_list in enumerate(list_of_iteration_lists):
         # questions_indices = [question.question_index for question in question_list if question.True_or_False]
         # answer_time = [question.answer_time for question in question_list if question.True_or_False]
@@ -56,7 +58,8 @@ def my_plot(list_of_iteration_lists, keys):
             # datetime_list_with_specific_number_of_notes[
             #     number_of_notes_per_question != number_of_notes] = None
             if list_index == 0:
-                label = 'very short answer time for ' + str(number_of_notes) + ' notes'
+                # label = 'very short answer time for ' + str(number_of_notes) + ' notes'
+                label = 'very short answer time'
             else:
                 label = ''
             ax[0, 0].plot(datetime_list_with_specific_number_of_notes,
@@ -64,7 +67,8 @@ def my_plot(list_of_iteration_lists, keys):
                             line_types[index_of_number_of_notes]+'g', 
                             label=label)
             if list_index == 0:
-                label = 'very long answer time for ' + str(number_of_notes) + ' notes'
+                # label = 'very long answer time for ' + str(number_of_notes) + ' notes'
+                label = 'very long answer time'
             else:
                 label = ''
             ax[0, 0].plot(datetime_list_with_specific_number_of_notes,
@@ -73,7 +77,7 @@ def my_plot(list_of_iteration_lists, keys):
                             label=label)
         box = ax[0, 0].get_position()
         ax[0, 0].set(ylabel='seconds')
-        ax[0, 0].set_position([box.x0, box.y0, box.width * 0.5, box.height])
+        ax[0, 0].set_position([box.x0, box.y0, box.width, box.height])
         ax[0, 0].legend(loc='center left', bbox_to_anchor=(1, 0.5))
         # # # # # # # # # # # # # # # # # # # # # # # # #
         max_level_list = [i.question.max_level for i in iteration_list]
@@ -110,7 +114,7 @@ def plot_step_size(r_ind, c_ind, question_list, ax):
     step_size_list = np.abs(step_size_list)
     ax[r_ind, c_ind].plot(step_size_list, label='step size')
     box = ax[r_ind, c_ind].get_position()
-    ax[r_ind, c_ind].set_position([box.x0, box.y0, box.width * 0.5, box.height])
+    ax[r_ind, c_ind].set_position([box.x0, box.y0, box.width, box.height])
     ax[r_ind, c_ind].legend(loc='center left', bbox_to_anchor=(1, 0.5))
     ax[r_ind, c_ind].set(yticks=range(0, 9))
 
@@ -126,8 +130,9 @@ def plot_levels(ax, iteration_list, y_limit, level_type, r_ind, c_ind, list_inde
                           label=label,
                           color='b')
     box = ax[r_ind, c_ind].get_position()
-    ax[r_ind, c_ind].set_position([box.x0, box.y0, box.width * 0.5, box.height])
-    ax[r_ind, c_ind].legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    ax[r_ind, c_ind].set_position([box.x0, box.y0, box.width, box.height])
+    # ax[r_ind, c_ind].legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    ax[r_ind, c_ind].legend()
     if y_limit is not None:
         ax[r_ind, c_ind].set(ylim=[0, y_limit])
 
