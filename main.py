@@ -290,6 +290,9 @@ class Iteration:
         class Level_Step_and_Intervals(Level):
             def __init__(self, iteration_list, phase, mistakes_counter,
                          max_level):
+                self.number_of_notes = None
+                self.intervals = None
+                self.step_size = None
                 level_att = {'number_of_notes': config.number_of_notes_level,
                              'intervals': config.intervals_level,
                              'step_size': config.step_size_level}
@@ -312,9 +315,6 @@ class Iteration:
                     self.calculate_total_level_according_to_raw_answer_time(
                         iteration_list, phase, max_level=max_level, mistakes_counter=mistakes_counter,
                         user=config.user)
-                    self.number_of_notes = None
-                    self.intervals = None
-                    self.step_size = None
                     self.calculate_dynamic_attributes_from_total_level(
                         is_attribute_dynamic=is_attribute_dynamic,
                         attribute_names=attribute_names, keys=config.keys)
@@ -485,14 +485,11 @@ class Iteration:
             number_of_notes, _, _, _ = \
                 self.get_number_of_notes_intervals_and_step_size_from_literals(
                     iteration_list=iteration_list, note_indices=note_indices)
+            self.number_of_notes = number_of_notes
 
             if constants.show_phase:
                 print('phase = ' + phase)
-            # self.size = None
             self.step = None
-            
-            # self.notes = []
-            self.number_of_notes = number_of_notes
 
             if number_of_notes is None:
                 self.number_of_notes = np.random.choice(
@@ -506,50 +503,60 @@ class Iteration:
             if note_indices is None:
                 note_indices = config.note_indices
             note_indices = self.create_none_list_if_necessary(list_or_none=note_indices, size=self.number_of_notes)
+            # Simplity the code.
+            # Either all notes are deterministic or none of them are.
             self.note = self.Note(names=note_names, numbers=note_numbers, indices=note_indices)
-            if config.step_top_or_bottom == 'top':
-                previous_note_indices = np.array(previous_note_indices)
-                previous_note_indices = np.flip(previous_note_indices)
-            if constants.show_step_options:
-                p = getattr(constants.levels.step_size, config.keys)
-                p = p[self.level.step_size, :]
-                x = np.arange(len(p))
-                print('step option: ' + str(x[p>0]+1))
-            while True:
-                for index_in_chord in np.arange(self.number_of_notes):
-                    if index_in_chord == 0:
-                        self.set_chord_step_and_top_or_bottom_note(
-                            previous_note_indices=previous_note_indices, 
-                            index_in_chord=index_in_chord,
-                            note_names=note_names, note_numbers=note_numbers,
-                            note_indices=note_indices,
-                            level=self.level)
-                        if constants.show_step:
-                            print('step size = ' + str(self.step.size) + ' step trend = ' + str(self.step.trend))
-                    else:
-                        self.set_interval_and_note(
-                            index_in_chord=index_in_chord,
-                            note_names=note_names, note_numbers=note_numbers, 
-                            note_indices=note_indices,
-                            intervals=intervals,
-                            level=self.level)
-                keys_obj = getattr(constants.keys, config.keys)
-                possible_note_indices = keys_obj.indices
-                indices = self.note.indices
+            note_indices_1 = copy.copy(note_indices)
+            if type(note_indices_1) is not list:
+                note_indices_1 = note_indices_1.tolist()
+            if note_indices_1 != [None]*self.number_of_notes:
+                self.note.initialize_with_index(keys=config.keys)
+            else:
                 if config.step_top_or_bottom == 'top':
-                    indices = np.array(indices)
-                    indices = indices - self.note.indices[0]
-                    indices = -1 * indices
-                    indices = indices + self.note.indices[0]
-                    indices = np.flip(indices)
-                    self.note.indices = indices
-                elif config.step_top_or_bottom == 'bottom':
-                    pass
-                if all(index in possible_note_indices for index in indices):
-                    self.note.initialize_with_index(keys=config.keys)
-                    break
-                else:
-                    self.note.indices = copy.copy(note_indices)
+                    previous_note_indices = np.array(previous_note_indices)
+                    previous_note_indices = np.flip(previous_note_indices)
+                if constants.show_step_options:
+                    p = getattr(constants.levels.step_size, config.keys)
+                    p = p[self.level.step_size, :]
+                    x = np.arange(len(p))
+                    print('step option: ' + str(x[p>0]+1))
+                while True:
+                    for index_in_chord in np.arange(self.number_of_notes):
+                        if index_in_chord == 0:
+                            self.set_chord_step_and_top_or_bottom_note(
+                                previous_note_indices=previous_note_indices, 
+                                index_in_chord=index_in_chord,
+                                note_names=note_names, note_numbers=note_numbers,
+                                note_indices=note_indices,
+                                level=self.level)
+                            if constants.show_step:
+                                print('step size = ' + str(self.step.size) + ' step trend = ' + str(self.step.trend))
+                        else:
+                            self.set_interval_and_note(
+                                index_in_chord=index_in_chord,
+                                note_names=note_names, note_numbers=note_numbers, 
+                                note_indices=note_indices,
+                                intervals=intervals,
+                                level=self.level)
+                    keys_obj = getattr(constants.keys, config.keys)
+                    possible_note_indices = keys_obj.indices
+                    indices = self.note.indices
+                    # why is this if statement here?
+                    # if None not in note_indices:
+                    if config.step_top_or_bottom == 'top':
+                        indices = np.array(indices)
+                        indices = indices - self.note.indices[0]
+                        indices = -1 * indices
+                        indices = indices + self.note.indices[0]
+                        indices = np.flip(indices)
+                        self.note.indices = indices
+                    elif config.step_top_or_bottom == 'bottom':
+                        pass
+                    if all(index in possible_note_indices for index in indices):
+                        self.note.initialize_with_index(keys=config.keys)
+                        break
+                    else:
+                        self.note.indices = copy.copy(note_indices)
         
         @staticmethod
         def set_max_level():
@@ -571,9 +578,10 @@ class Iteration:
         def set_chord_step_and_top_or_bottom_note(
                 self, previous_note_indices, index_in_chord,
                 note_names=None, note_numbers=None, note_indices=None,
-                step_trend=None, step_size=None,
                 level=None):
             keys = config.keys
+            step_size = config.step_size
+            step_trend = config.step_trend
             note_is_literally_defined = \
                 note_indices[index_in_chord] is not None or \
                 note_names[index_in_chord] is not None or \
@@ -594,8 +602,8 @@ class Iteration:
                                        (self.step.size - 1) * self.step.trend
                     keys_obj = getattr(constants.keys, keys)
                     num_notes_per_octave = keys_obj.per_octave
-                    top_note_index_allowed = num_notes_per_octave
-                    if index_in_chord > 0:
+                    top_note_index_allowed = 2 * num_notes_per_octave
+                    if config.step_top_or_bottom == 'top':
                         top_note_index_allowed = top_note_index_allowed + num_notes_per_octave
                     if 0 <= new_note_index < top_note_index_allowed:
                         self.note.indices[index_in_chord] = new_note_index

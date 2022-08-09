@@ -184,7 +184,7 @@ levels = ClassOfLevels()
 
 max_chord_size = levels.number_of_notes.shape[1]
 
-show_notes = False
+show_notes = True
 show_step = False
 show_intervals = False
 show_total_level = False

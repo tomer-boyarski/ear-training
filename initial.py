@@ -12,12 +12,7 @@ error_state = 'No Recent Errors'
 
 class Level:
     def __init__(self, user):
-        if user is None:
-            self.step_size = 0
-            self.number_of_notes = 0
-            self.intervals = 0
-            self.total = 0
-        elif user == 'tomer':
+        if user == 'tomer':
             self.step_size = None
             self.number_of_notes = None
             self.intervals = None
@@ -27,7 +22,11 @@ class Level:
             #     with open(file_name, 'rb') as inp:
             #         iteration_list = pickle.load(inp)
             #         self.total = iteration_list[-1].question.level.total
-
+        else: # if user is None:
+            self.step_size = 0
+            self.number_of_notes = 0
+            self.intervals = 0
+            self.total = 0
 
 
 def get_level(user):

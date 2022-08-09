@@ -79,6 +79,8 @@ def my_plot(list_of_iteration_lists, keys):
         ax[0, 0].set(ylabel='seconds')
         ax[0, 0].set_position([box.x0, box.y0, box.width, box.height])
         ax[0, 0].legend(loc='center left', bbox_to_anchor=(1, 0.5))
+        ax[0, 0].xaxis.set_major_formatter(mdates.DateFormatter('%b-%d'))
+        ax[0, 0].xaxis.set_major_locator(mdates.DayLocator(interval=1))
         # # # # # # # # # # # # # # # # # # # # # # # # #
         max_level_list = [i.question.max_level for i in iteration_list]
         if len(max_level_list) >= 1:
@@ -98,10 +100,12 @@ def my_plot(list_of_iteration_lists, keys):
         plot_levels(ax=ax, iteration_list=iteration_list, y_limit=None,
                     level_type='number_of_notes', r_ind=2, c_ind=1, list_index=list_index)
 
-        for rind in range(nrows):
-            for cind in range(ncols):
-                ax[rind, cind].xaxis.set_major_formatter(mdates.DateFormatter('%b-%d'))
-                ax[rind, cind].xaxis.set_major_locator(mdates.DayLocator(interval=1))
+        # for cind in range(ncols):
+        #     for rind in range(nrows):
+        #         print('rind', rind, 'cind', cind)
+        #         if not (cind == 1 and rind == 1):
+        #             ax[rind, cind].xaxis.set_major_formatter(mdates.DateFormatter('%b-%d'))
+        #             ax[rind, cind].xaxis.set_major_locator(mdates.DayLocator(interval=1))
 
     ax[0, 1].set_axis_off()
     fig.canvas.draw()
@@ -122,15 +126,27 @@ def plot_step_size(r_ind, c_ind, question_list, ax):
 def plot_levels(ax, iteration_list, y_limit, level_type, r_ind, c_ind, list_index):
     level_to_plot = [getattr(iteration.question.level, level_type) for iteration in iteration_list]
     datetime_list = [i.answer.time.datetime for i in iteration_list]
+    level_to_plot_1 = []
+    datetime_list_1 = []
+    for index, level in enumerate(level_to_plot):
+        if level is not None:
+            level_to_plot_1.append(level)
+            datetime_list_1.append(datetime_list[index])
+    # level_to_plot = [l for l in level_to_plot if l is not None]
+    # datetime_list = [l for l in datetime_list if l is not None]
+    
     if list_index == 0:
         label = level_type+' level'
     else:
         label = ''
-    ax[r_ind, c_ind].plot(datetime_list, level_to_plot, 
+    ax[r_ind, c_ind].plot(datetime_list_1, level_to_plot_1, 
                           label=label,
                           color='b')
     box = ax[r_ind, c_ind].get_position()
     ax[r_ind, c_ind].set_position([box.x0, box.y0, box.width, box.height])
+    if len(datetime_list_1) > 0:
+        ax[r_ind, c_ind].xaxis.set_major_formatter(mdates.DateFormatter('%b-%d'))
+        ax[r_ind, c_ind].xaxis.set_major_locator(mdates.DayLocator(interval=1))
     # ax[r_ind, c_ind].legend(loc='center left', bbox_to_anchor=(1, 0.5))
     ax[r_ind, c_ind].legend()
     if y_limit is not None:
