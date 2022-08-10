@@ -896,7 +896,8 @@ def main():
             with open('users\\' + config.user + '\\level.pkl', 'wb') as output:
                 pickle.dump(iteration_list[-1].question.level.total, output, pickle.HIGHEST_PROTOCOL)
         if len(list_of_iteration_lists) > 0:
-            plot_functions.my_plot(list_of_iteration_lists=list_of_iteration_lists, keys=config.keys)
+            if config.plot:
+                plot_functions.my_plot(list_of_iteration_lists=list_of_iteration_lists, keys=config.keys)
 
     print('this is the end of MAIN')
 
