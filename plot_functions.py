@@ -15,22 +15,15 @@ def my_plot(list_of_iteration_lists, keys):
     if config.plot_only_last_session:
         list_of_iteration_lists = [list_of_iteration_lists[-1]]
     for list_index, iteration_list in enumerate(list_of_iteration_lists):
-        # questions_indices = [question.question_index for question in question_list if question.True_or_False]
-        # answer_time = [question.answer_time for question in question_list if question.True_or_False]
         answer_time = [q.answer.time.raw for q in iteration_list]
         auto_regressive_answer_time = [question.answer.time.autoregressive for question in iteration_list]
         datetime_list = [i.answer.time.datetime for i in iteration_list]
-        # ax[0, 0].plot(questions_indices, answer_time, label='answer time')
-        # ax[0, 0].plot(questions_indices, constants.minimal_answer_time * np.ones(len(answer_time)),
-        #            '--k', label='minimal answer time')
+        datetime_list = np.array(datetime_list)
         if list_index == 0:
             label = 'answer time'
         else:
             label = ''
         ax[0, 0].plot(datetime_list, answer_time, '-', label=label, color='b')
-        # ax[0, 0].plot(auto_regressive_answer_time, label='autoregressive answer time')
-        question_indices = np.arange(len(iteration_list))
-        answer_types = [q.answer.type for q in iteration_list]
         if list_index == 0:
             label = 'Errors'
         else:
@@ -38,43 +31,37 @@ def my_plot(list_of_iteration_lists, keys):
         error_indices = [i for i, q in enumerate(iteration_list) if q.answer.type == False]
         number_of_notes_per_question = [q.question.number_of_notes for q in iteration_list]
         number_of_notes_per_question = np.array(number_of_notes_per_question)
-        # number_of_notes = np.array([q.number_of_notes for q in question_list])
 
         error_times = np.take(datetime_list, error_indices)
         ax[0, 0].plot(error_times,
                     np.zeros(len(error_indices)),
                     'd', label=label, color='m')
         line_types = [':', '--', '-.']
+        labels_for_long_and_short_already_drawn = False
         for index_of_number_of_notes, number_of_notes in enumerate(np.unique(number_of_notes_per_question)):
             very_short_answer_time, very_long_answer_time, _, _, = \
                 constants.set_abcd(number_of_notes=number_of_notes)
-            # question_indices_with_specific_number_of_notes = \
-            #     datetime_list.astype(float)
             datetime_list_with_specific_number_of_notes = datetime_list
-            for i in range(len(datetime_list_with_specific_number_of_notes)):
-                if number_of_notes_per_question[i] != number_of_notes:
-                    datetime_list_with_specific_number_of_notes[i] = None
-            # datetime_list_with_specific_number_of_notes = [d if  for d in datetime_list_with_specific_number_of_notes]
-            # datetime_list_with_specific_number_of_notes[
-            #     number_of_notes_per_question != number_of_notes] = None
-            if list_index == 0:
-                # label = 'very short answer time for ' + str(number_of_notes) + ' notes'
-                label = 'very short answer time'
+            mask = number_of_notes_per_question == number_of_notes
+            datetime_list_with_specific_number_of_notes = \
+                datetime_list_with_specific_number_of_notes[mask]
+
+            if not labels_for_long_and_short_already_drawn and \
+                len(datetime_list_with_specific_number_of_notes) > 1:
+                labels_for_long_and_short_already_drawn = True
+                short_label = 'very short answer time'
+                long_label = 'very long answer time'
             else:
-                label = ''
+                short_label = ''
+                long_label = ''
             ax[0, 0].plot(datetime_list_with_specific_number_of_notes,
                             very_short_answer_time * np.ones(len(datetime_list_with_specific_number_of_notes)),
                             line_types[index_of_number_of_notes]+'g', 
-                            label=label)
-            if list_index == 0:
-                # label = 'very long answer time for ' + str(number_of_notes) + ' notes'
-                label = 'very long answer time'
-            else:
-                label = ''
+                            label=short_label)
             ax[0, 0].plot(datetime_list_with_specific_number_of_notes,
                             very_long_answer_time * np.ones(len(datetime_list_with_specific_number_of_notes)),
                             line_types[index_of_number_of_notes]+'r', 
-                            label=label)
+                            label=long_label)
         box = ax[0, 0].get_position()
         ax[0, 0].set(ylabel='seconds')
         ax[0, 0].set_position([box.x0, box.y0, box.width, box.height])
